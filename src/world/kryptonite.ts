@@ -13,6 +13,7 @@ export class KryptoniteEffect {
   private materials=new WeakMap<THREE.Mesh,THREE.MeshStandardMaterial[]>();
   private halos=new WeakMap<THREE.Mesh,THREE.Sprite>();
   private haloTexture:THREE.CanvasTexture;
+  private lastExposure=-1;
   constructor(scene:THREE.Scene){
     this.ground.geometry.rotateX(-Math.PI/2);scene.add(this.light,this.ground);
     const canvas=document.createElement('canvas');canvas.width=canvas.height=64;const ctx=canvas.getContext('2d')!;
@@ -38,7 +39,9 @@ export class KryptoniteEffect {
       }
       halo.visible=amount>0;halo.material.opacity=amount*.85;
     }
-    document.documentElement.style.setProperty('--kryptonite-exposure',String(exposure*.25));
+    if(Math.abs(exposure-this.lastExposure)>.002){
+      document.documentElement.style.setProperty('--kryptonite-exposure',String(exposure*.25));this.lastExposure=exposure;
+    }
     return exposure;
   }
 }

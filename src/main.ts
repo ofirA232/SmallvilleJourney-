@@ -1,4 +1,6 @@
 import './style.css';
+import { accelerateOccluders } from './core/camera-occlusion';
+import { RenderQuality } from './core/render-quality';
 import './encounters.css';
 import { KryptoniteEffect } from './world/kryptonite';
 import { BridgeScene } from './bridge-scene';
@@ -71,8 +73,8 @@ class Game {
   private footShadow: THREE.Mesh;
   private trail: THREE.Points;
   private trailPositions: THREE.Vector3[] = [];
-  private adaptiveLow = false;
-  private slowFrames = 0;
+  private renderQuality = new RenderQuality();
+
   private rendererFrames = 0;
   private fps = 60;
   private fpsTime = 0;
@@ -97,7 +99,7 @@ class Game {
     const backlight=new THREE.DirectionalLight('#b2d8d2',1.5);backlight.position.set(25,-19,-35);this.scene.add(backlight);
     this.world = new World([...episode.quests,...(episode.memories??[])]);this.world.addMemories(episode.memories??[]); this.scene.add(this.world.root, this.clark.root);
     this.world.root.updateWorldMatrix(true,true);
-    this.occluders=this.world.scenery.children.filter(child=>child instanceof THREE.Mesh);
+    this.occluders=this.world.scenery.children.filter(child=>child instanceof THREE.Mesh);accelerateOccluders(this.occluders);
     this.navigator = new Navigator(this.world.colliders);
     this.footShadow=new THREE.Mesh(new THREE.CircleGeometry(.29,22),new THREE.MeshBasicMaterial({color:'#1a382a',opacity:.22,transparent:true,depthWrite:false}));
     this.footShadow.geometry.rotateX(-Math.PI/2);this.scene.add(this.footShadow);
@@ -143,6 +145,7 @@ class Game {
   }
   updateContinue(){element('begin-button').querySelector('span')!.textContent=story.hadSave?(story.complete?'Return to Smallville':'Continue your journey'):'Begin your journey';element('landing-new').hidden=!story.hadSave;}
   async setSettings(settings:Settings){
+    if(settings.quality!==this.settings.quality)this.renderQuality.reset();
     this.settings={...settings};const worked=await this.audio.setEnabled(settings.sound);
     if(!worked){this.settings.sound=false;ui.toast('Sound is unavailable','You can keep exploring with sound turned off.');}
     try{storage?.setItem('smallville-settings-v1',JSON.stringify(this.settings));}catch{ /* A preference should never block play. */ }
@@ -151,10 +154,12 @@ class Game {
   resize(){
     this.renderDirty=true;
     const width=Math.max(1,innerWidth),height=Math.max(1,innerHeight),coarse=matchMedia('(pointer: coarse)').matches;
-    const low=this.settings.quality==='low'||(this.settings.quality==='auto'&&(coarse||width<600||this.adaptiveLow));
-    const ratio=Math.min(devicePixelRatio||1,low?1.05:1.65,Math.sqrt(2_000_000/(width*height)));
+    const low=this.settings.quality==='low'||(this.settings.quality==='auto'&&(coarse||width<600||this.renderQuality.level>0));
+    const budget=low?900_000:1_500_000;
+    document.body.classList.toggle('low-graphics',low);
+    const ratio=Math.min(devicePixelRatio||1,low?1:1.4,Math.sqrt(budget/(width*height)))*(this.settings.quality==='auto'&&this.renderQuality.level===2?.75:1);
     this.renderer.setPixelRatio(ratio);this.renderer.setSize(width,height,false);this.camera.resize(width,height);
-    this.renderer.shadowMap.enabled=!low;this.sun.shadow.mapSize.set(1536,1536);this.renderer.shadowMap.needsUpdate=true;
+    this.renderer.shadowMap.enabled=!low;this.sun.shadow.mapSize.set(1024,1024);this.renderer.shadowMap.needsUpdate=true;
   }
   pauseInputs(){this.input?.clear();this.stopRoute();this.action=null;this.player.speed=0;this.player.moving=false;this.player.superSpeed=false;}
   newGame(){
@@ -321,7 +326,7 @@ class Game {
     element('race-status').hidden=this.mode!=='playing'||story.quest?.kind!=='race'||ui.paused;
     element('race-status').querySelector('span')!.textContent=story.quest?.timerLabel??'THE DANCE STARTS IN';
     element('race-clock').textContent=`${Math.floor(Math.ceil(this.race.remaining)/60)}:${String(Math.ceil(this.race.remaining)%60).padStart(2,'0')}`;
-    element('telemetry').textContent=JSON.stringify({...this.snapshot(),poisonExposure:this.poisonAmount,truckAttack:this.truckAttack?.phase??null,bridgeScene:!!this.bridgeScene,fieldRescue:!!this.fieldRescue,restrained:story.restrained,restraintHeight:story.restrained?.34:0,characterModel:this.clark.modelStatus,characterMotion:this.clark.imported?.motion??null,carriedActor:this.carriedActor?{id:this.carriedId,model:this.carriedActor.modelStatus,attached:this.carriedActor.root.parent===this.clark.root}:null,actors:Object.fromEntries([...this.world.characters].map(([id,actor])=>[id,{model:actor.modelStatus,visible:actor.root.visible,necklace:actor.necklace.visible}])),fps:this.fps,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles});
+    element('telemetry').textContent=JSON.stringify({...this.snapshot(),poisonExposure:this.poisonAmount,truckAttack:this.truckAttack?.phase??null,bridgeScene:!!this.bridgeScene,fieldRescue:!!this.fieldRescue,restrained:story.restrained,restraintHeight:story.restrained?.34:0,characterModel:this.clark.modelStatus,characterMotion:this.clark.imported?.motion??null,carriedActor:this.carriedActor?{id:this.carriedId,model:this.carriedActor.modelStatus,attached:this.carriedActor.root.parent===this.clark.root}:null,actors:Object.fromEntries([...this.world.characters].map(([id,actor])=>[id,{model:actor.modelStatus,visible:actor.root.visible,necklace:actor.necklace.visible}])),fps:this.fps,qualityLevel:this.renderQuality.level,pixelRatio:this.renderer.getPixelRatio(),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles});
   }
   frame(time:number){
     requestAnimationFrame(next=>this.frame(next));
@@ -371,8 +376,8 @@ class Game {
     if(this.hudTime>.12||!this.ready||pauseChanged){
       this.updateHud();
     }
-    this.rendererFrames++;this.fpsTime+=dt;if(this.fpsTime>1){this.fps=Math.round(this.rendererFrames/this.fpsTime);this.rendererFrames=0;this.fpsTime=0;}
-    if(this.settings.quality==='auto'&&this.elapsed>7&&!this.adaptiveLow){if(dt>.04)this.slowFrames++;else this.slowFrames=Math.max(0,this.slowFrames-1);if(this.slowFrames>70){this.adaptiveLow=true;this.resize();}}
+    this.rendererFrames++;this.fpsTime+=elapsed;if(this.fpsTime>1){this.fps=Math.round(this.rendererFrames/this.fpsTime);this.rendererFrames=0;this.fpsTime=0;}
+    if(this.renderQuality.update(elapsed,this.settings.quality==='auto'&&!paused&&this.ready&&this.mode!=='intro'))this.resize();
     if(!this.ready){this.ready=true;canvas.dataset.ready='true';element('loading').classList.add('fade');setTimeout(()=>element('loading').hidden=true,650);}
   }
 }

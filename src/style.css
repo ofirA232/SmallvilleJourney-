@@ -36,3 +36,5 @@
 #truck-attack [hidden]{display:none}body:has(#truck-attack) #touch-controls{visibility:hidden}
 #truck-attack[data-phase=failed]{border-color:#dfa38b}
 body:has(#truck-attack) #objective,body:has(#truck-attack) #location-hud,body:has(#truck-attack) #desktop-controls{visibility:hidden}
+/* Avoid repeated backdrop sampling on slower GPUs while the world is moving. */
+body.low-graphics .icon-button,body.low-graphics .episode-pill,body.low-graphics #desktop-controls,body.low-graphics .target-label,body.low-graphics .objective-card,body.low-graphics .toast,body.low-graphics .touch-actions button{backdrop-filter:none}

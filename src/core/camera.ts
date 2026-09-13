@@ -44,6 +44,7 @@ export class CameraRig {
       up=normal;
       const direction=position.clone().sub(target);const length=direction.length();direction.normalize();
       const ray=new THREE.Raycaster(target,direction,1.0,length);
+      ray.firstHitOnly=true;
       const hit=ray.intersectObjects(occluders,false)[0];
       if(hit&&hit.distance<length-.5)position=target.clone().addScaledVector(direction,Math.max(3.5,hit.distance-.45));
     }

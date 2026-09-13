@@ -61,3 +61,11 @@ The truck objective now starts a first-person scene along the school service lan
 
 Implementation: `src/truck-attack.ts`, connected at the existing stable `truck` quest ID. No save-format changes are required. The generic strength-meter entry for this objective was removed; other power challenges retain their existing controls. `e2e/truck-attack.spec.ts` covers missed/late input, retry, keyboard/touch success, focus/settings pauses and unfinished/completed reloads. The full-journey helper now recognizes the scene and explicitly presses the stop control.
 Validation: production build and all 43 logic tests passed. All four dedicated truck browser scenarios passed across desktop and Pixel 7 emulation, including visual captures of approach, failure and successful stop.
+
+### September 13 - Desktop rendering performance
+
+Static scenery now has per-mesh BVH acceleration for follow-camera occlusion queries, with nearest-hit-only traversal. A regression compares 112 rays across all seven locations against the original Three.js intersections; results match. One local run measured 60.7 ms before and 18.1 ms after for that batch, not overall frame time.
+
+Automatic graphics now measures active wall time in two-second windows, disables shadows and reduces the pixel budget when frame rate stays below 38, then provides a second resolution reduction if needed. Mobile/Low use a 900k pixel budget, initial desktop uses 1.5M; shadow maps use 1024 rather than 1536. Low graphics disables moving HUD backdrop blur. Kryptonite no longer rewrites the CSS exposure value when unchanged. FPS telemetry uses actual elapsed time rather than capped simulation time.
+
+Validation: 46 unit tests and two desktop browser scenarios (movement/superspeed/jump/pause plus camera/journal/settings) passed. The deployed baseline and local build both reported approximately 9 fps in headless browser samples; these are not a controlled hardware performance comparison and do not demonstrate a whole-game FPS gain on the user's computer. The local build correctly reached adaptive level 2. A physical-device retest is still needed.
