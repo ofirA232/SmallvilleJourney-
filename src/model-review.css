@@ -1,0 +1,10 @@
+canvas { width: calc(100vw - 360px); height: 100dvh; margin-left: 360px; }
+aside { box-sizing: border-box; width: 320px; max-height: calc(100dvh - 40px); overflow-y: auto; }
+button { margin-bottom: 5px; min-height: 40px; }
+a { display: inline-block; margin-bottom: 5px; }
+button:focus-visible, a:focus-visible { outline: 2px solid #edce8c; outline-offset: 3px; }
+@media (max-width: 600px) {
+  canvas { width: 100vw; height: 60dvh; margin-left: 0; }
+  aside { top: auto; bottom: 0; left: 0; width: 100%; max-width: none; height: 40dvh; max-height: none; border-radius: 16px 16px 0 0; }
+  h1 { font-size: 18px; }
+}

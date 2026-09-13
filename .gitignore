@@ -1,0 +1,22 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+.vite/
+*.local
+
+# Local credentials and editor state
+.env
+.env.*
+!.env.example
+.codex/
+.agents/
+.netlify/
+*.log
+
+# Original model imports remain local; runtime GLBs are tracked in public/.
+docs/model-review/source/
+docs/lana-review/source/
+docs/lex-review/source/
+docs/lana-review/submitted.glb
+docs/lex-review/submitted.glb

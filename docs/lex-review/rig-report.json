@@ -1,0 +1,18 @@
+{
+  "sourceTriangles": 971738,
+  "triangles": 24000,
+  "vertices": 15337,
+  "bytes": 1773400,
+  "simplificationError": 0.0010065537644550204,
+  "bones": 17,
+  "clips": [
+    "Idle",
+    "Walk",
+    "Run",
+    "Jump",
+    "Swim",
+    "Strength",
+    "Restrained"
+  ],
+  "skinning": "Provisional geometric weights; inspect extreme poses before production."
+}
