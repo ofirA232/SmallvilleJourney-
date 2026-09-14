@@ -1,4 +1,5 @@
 import './style.css';
+import { SpeedTrail } from './world/speed-trail';
 import { accelerateOccluders } from './core/camera-occlusion';
 import { RenderQuality } from './core/render-quality';
 import './encounters.css';
@@ -71,8 +72,8 @@ class Game {
   private shadowTime = 0;
   private contextLost = false;
   private footShadow: THREE.Mesh;
-  private trail: THREE.Points;
-  private trailPositions: THREE.Vector3[] = [];
+  private trail = new SpeedTrail();
+
   private renderQuality = new RenderQuality();
 
   private rendererFrames = 0;
@@ -103,10 +104,7 @@ class Game {
     this.navigator = new Navigator(this.world.colliders);
     this.footShadow=new THREE.Mesh(new THREE.CircleGeometry(.29,22),new THREE.MeshBasicMaterial({color:'#1a382a',opacity:.22,transparent:true,depthWrite:false}));
     this.footShadow.geometry.rotateX(-Math.PI/2);this.scene.add(this.footShadow);
-    const trailGeometry=new THREE.BufferGeometry();trailGeometry.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(18*3),3));
-    const trailColors=new Float32Array(18*3);for(let i=0;i<18;i++){const color=new THREE.Color(i%2?'#c95340':'#8bbcc2');trailColors[i*3]=color.r;trailColors[i*3+1]=color.g;trailColors[i*3+2]=color.b;}
-    trailGeometry.setAttribute('color',new THREE.BufferAttribute(trailColors,3));
-    this.trail=new THREE.Points(trailGeometry,new THREE.PointsMaterial({vertexColors:true,size:.19,transparent:true,opacity:.42,depthWrite:false}));this.trail.frustumCulled=false;this.trail.visible=false;this.scene.add(this.trail);
+    this.scene.add(this.trail.mesh);
     try{const saved=JSON.parse(storage?.getItem('smallville-settings-v1')??'null');if(saved&&typeof saved.sound==='boolean'&&typeof saved.reducedMotion==='boolean'&&['auto','low','high'].includes(saved.quality))this.settings=saved;}catch{ /* Default preferences are sufficient. */ }
     if(parameters.get('quality')==='low')this.settings.quality='low';
     this.input=new Input(canvas,{
@@ -161,7 +159,7 @@ class Game {
     this.renderer.setPixelRatio(ratio);this.renderer.setSize(width,height,false);this.camera.resize(width,height);
     this.renderer.shadowMap.enabled=!low;this.sun.shadow.mapSize.set(1024,1024);this.renderer.shadowMap.needsUpdate=true;
   }
-  pauseInputs(){this.input?.clear();this.stopRoute();this.action=null;this.player.speed=0;this.player.moving=false;this.player.superSpeed=false;}
+  pauseInputs(){this.trail.clear();this.input?.clear();this.stopRoute();this.action=null;this.player.speed=0;this.player.moving=false;this.player.superSpeed=false;}
   newGame(){
     this.truckAttack?.dispose();this.truckAttack=null;this.clark.root.visible=true;
     this.fieldRescue?.dispose();this.fieldRescue=null;
@@ -300,8 +298,7 @@ class Game {
       if(this.carriedActor){this.carriedActor.root.position.set(.25,.7,.28);this.carriedActor.root.rotation.z=-1.25;this.clark.root.add(this.carriedActor.root);}
     }
     this.footShadow.position.copy(normal).multiplyScalar(surfaceRadius(normal)+.035);this.footShadow.quaternion.setFromUnitVectors(UP,normal);this.footShadow.visible=!this.player.swimming;this.footShadow.scale.setScalar(story.restrained?.7:1+this.player.height*.2);
-    this.trail.visible=this.player.superSpeed&&!this.settings.reducedMotion;
-    if(this.trail.visible){this.trailPositions.unshift(this.clark.root.position.clone().addScaledVector(normal,.55));this.trailPositions=this.trailPositions.slice(0,18);const positions=this.trail.geometry.getAttribute('position');for(let i=0;i<18;i++){const position=this.trailPositions[i]??this.clark.root.position;positions.setXYZ(i,position.x,position.y,position.z);}positions.needsUpdate=true;}else this.trailPositions=[];
+    this.trail.update(this.clark.root.position,this.player.superSpeed,this.settings.reducedMotion);
   }
   project(position:THREE.Vector3){const point=position.clone().project(this.camera.camera);const front=position.dot(this.camera.camera.position.clone().sub(position))>0;return{x:(point.x*.5+.5)*innerWidth,y:(-.5*point.y+.5)*innerHeight,visible:front&&point.z<1&&point.z>-1&&Math.abs(point.x)<1.03&&Math.abs(point.y)<1.03};}
   updateLabels(){
@@ -326,7 +323,7 @@ class Game {
     element('race-status').hidden=this.mode!=='playing'||story.quest?.kind!=='race'||ui.paused;
     element('race-status').querySelector('span')!.textContent=story.quest?.timerLabel??'THE DANCE STARTS IN';
     element('race-clock').textContent=`${Math.floor(Math.ceil(this.race.remaining)/60)}:${String(Math.ceil(this.race.remaining)%60).padStart(2,'0')}`;
-    element('telemetry').textContent=JSON.stringify({...this.snapshot(),poisonExposure:this.poisonAmount,truckAttack:this.truckAttack?.phase??null,bridgeScene:!!this.bridgeScene,fieldRescue:!!this.fieldRescue,restrained:story.restrained,restraintHeight:story.restrained?.34:0,characterModel:this.clark.modelStatus,characterMotion:this.clark.imported?.motion??null,carriedActor:this.carriedActor?{id:this.carriedId,model:this.carriedActor.modelStatus,attached:this.carriedActor.root.parent===this.clark.root}:null,actors:Object.fromEntries([...this.world.characters].map(([id,actor])=>[id,{model:actor.modelStatus,visible:actor.root.visible,necklace:actor.necklace.visible}])),fps:this.fps,qualityLevel:this.renderQuality.level,pixelRatio:this.renderer.getPixelRatio(),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles});
+    element('telemetry').textContent=JSON.stringify({...this.snapshot(),trailVisible:this.trail.mesh.visible,trailSamples:this.trail.sampleCount,reducedMotion:this.settings.reducedMotion,poisonExposure:this.poisonAmount,truckAttack:this.truckAttack?.phase??null,bridgeScene:!!this.bridgeScene,fieldRescue:!!this.fieldRescue,restrained:story.restrained,restraintHeight:story.restrained?.34:0,characterModel:this.clark.modelStatus,characterMotion:this.clark.imported?.motion??null,carriedActor:this.carriedActor?{id:this.carriedId,model:this.carriedActor.modelStatus,attached:this.carriedActor.root.parent===this.clark.root}:null,actors:Object.fromEntries([...this.world.characters].map(([id,actor])=>[id,{model:actor.modelStatus,visible:actor.root.visible,necklace:actor.necklace.visible}])),fps:this.fps,qualityLevel:this.renderQuality.level,pixelRatio:this.renderer.getPixelRatio(),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles});
   }
   frame(time:number){
     requestAnimationFrame(next=>this.frame(next));

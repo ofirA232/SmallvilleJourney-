@@ -1,0 +1,20 @@
+import {test,expect} from '@playwright/test';
+for(const quality of ['low','auto'])test(`production trail remains visible with ${quality} graphics and respects reduced motion`,async({page},info)=>{
+ const failures:string[]=[];page.on('pageerror',e=>failures.push(e.message));page.on('response',r=>{if(r.status()>=400)failures.push(`${r.status()} ${r.url()}`);});page.on('requestfailed',r=>failures.push(r.url()));
+ await page.addInitScript(q=>localStorage.setItem('smallville-settings-v1',JSON.stringify({sound:false,reducedMotion:false,quality:q})),quality);
+ await page.goto('/');await page.locator('#loading').waitFor({state:'hidden',timeout:60000});await page.locator('#begin-button').click();await page.locator('#skip-intro').click();
+ const state=()=>page.locator('#telemetry').evaluate(el=>JSON.parse(el.textContent!));
+ await expect.poll(async()=>(await state()).characterModel).toBe('ready');await expect.poll(async()=>(await state()).actors.lana.model).toBe('ready');await expect.poll(async()=>(await state()).actors.lex.model).toBe('ready');
+ await page.clock.install();await page.clock.pauseAt(new Date((await page.evaluate(()=>Date.now()))+3600000));
+ for(let i=0;i<50;i++)await page.clock.fastForward(100);
+ if(quality==='auto')expect((await state()).qualityLevel).toBe(2);
+ await page.locator('#world').focus();await page.keyboard.down('d');await page.keyboard.down('Shift');
+ for(let i=0;i<6;i++)await page.clock.fastForward(100);
+ expect((await state()).superSpeed).toBe(true);expect((await state()).trailVisible).toBe(true);expect((await state()).trailSamples).toBeGreaterThan(10);
+ await page.screenshot({path:info.outputPath('speed-trail.png'),scale:'css'});
+ await page.keyboard.up('Shift');await page.keyboard.up('d');for(let i=0;i<4;i++)await page.clock.fastForward(100);expect((await state()).trailVisible).toBe(false);
+ await page.locator('#settings-button').click();await page.locator('#motion-setting').check();await page.getByRole('button',{name:'Close settings',exact:true}).click();
+ await page.locator('#world').focus();await page.keyboard.down('d');await page.keyboard.down('Shift');for(let i=0;i<4;i++)await page.clock.fastForward(100);
+ expect((await state()).trailVisible).toBe(false);expect((await state()).reducedMotion).toBe(true);
+ await page.keyboard.up('Shift');await page.keyboard.up('d');expect(failures).toEqual([]);
+});
