@@ -75,3 +75,17 @@ Validation: 46 unit tests and two desktop browser scenarios (movement/superspeed
 Replaced the small, frame-sampled point trail with two continuous red/blue ribbons. The effect uses one draw call, preallocated buffers and at most 124 triangles. Samples are spaced by world distance, so lower frame rates do not create gaps or change the maximum length. Low and adaptive graphics retain the effect; Reduce motion intentionally disables it. Pausing clears the trail and teleport detection prevents lines across the planet.
 
 Unit coverage checks 10/60 fps sampling, reduced motion, stopping and teleport resets. The new `playwright.production.config.ts` serves `dist` rather than the development server; build before using it. Dedicated trail scenarios check Low/Auto (including adaptive level 2), stop/resume settings, loaded Clark/Lana/Lex models and failed asset requests on desktop and mobile viewports. These checks distinguish shipped-build failures from device graphics/preferences; they do not imply that every browser or all future deployment configurations are covered.
+
+### September 14 - Draw-call batching and self-healing graphics tier
+
+Measured the production build on the development desktop (RTX 3060, 1920x1080) with Chromium on the real GPU: the game already held a vsync-capped 60 fps with about 2 ms of JavaScript per frame, so the remaining cost is GPU and driver work per draw call, which matters on laptops, integrated graphics and phones. Three changes cut draw calls without changing the picture:
+
+- Static scenery is merged per shading variant with colours baked into vertex colours instead of one mesh per colour (240 meshes / 192 materials became 3 meshes).
+- Procedural character joints merge across colours the same way (222 meshes became 120).
+- The thirteen clouds are two instanced meshes instead of 65 separate spheres.
+
+Draw calls per frame: globe view 415 to 133, follow view 229 to 82, superspeed 176-300 to 41-99. Before/after screenshots in both views are pixel-identical to the eye.
+
+Automatic graphics now measures the share of slow frames rather than the average, so one-off stalls (model decode, shader compile, a returning tab) no longer lock a fast machine into a lower tier, and a drop recovers after eight seconds of near-perfect frames, at most three times per session. Netlify now serves hashed bundles as immutable and models with an hourly cache.
+
+Validation: 50 unit tests, the production trail scenario and the full browser suite. A physical-device retest on a weaker machine is still the only way to confirm the whole-game gain there.

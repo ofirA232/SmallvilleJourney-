@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { box, cylinder, group } from './primitives';
+import { bakeColor, box, cylinder, group, plainMaterial } from './primitives';
 import type { ActorId } from '../types';
 
 import { palettes } from '../content/appearance';
@@ -18,16 +18,22 @@ function mesh(parent:THREE.Object3D,geometry:THREE.BufferGeometry,color:string,x
 const round=(p:THREE.Object3D,c:string,x:number,y:number,z:number,sx:number,sy:number,sz:number)=>mesh(p,roundGeometry,c,x,y,z,sx,sy,sz);
 const taper=(p:THREE.Object3D,c:string,x:number,y:number,z:number,sx:number,sy:number,sz:number)=>mesh(p,taperGeometry,c,x,y,z,sx,sy,sz);
 // Merge only siblings within a joint; elbow, knee and neck pivots stay articulated.
+// Colours are baked into vertices, so a joint costs one draw call per shading variant, not per colour.
 function batchJoint(joint:THREE.Group){
-  const buckets=new Map<THREE.Material,THREE.Mesh[]>();
-  for(const child of joint.children)if(child instanceof THREE.Mesh&&!Array.isArray(child.material)){
-    const bucket=buckets.get(child.material)??[];bucket.push(child);buckets.set(child.material,bucket);
+  const buckets=new Map<string,{material:THREE.MeshStandardMaterial;meshes:THREE.Mesh[];receive:boolean}>();
+  for(const child of joint.children)if(child instanceof THREE.Mesh&&plainMaterial(child.material)){
+    const source=child.material,key=`${source.flatShading}|${source.roughness}`;
+    const bucket=buckets.get(key)??{material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:source.roughness,flatShading:source.flatShading}),meshes:[],receive:false};
+    bucket.meshes.push(child);bucket.receive||=child.receiveShadow;buckets.set(key,bucket);
   }
-  for(const [mat,meshes] of buckets){
-    if(meshes.length<2)continue;
-    const parts=meshes.map(value=>{value.updateMatrix();return value.geometry.clone().applyMatrix4(value.matrix).toNonIndexed();});
+  for(const bucket of buckets.values()){
+    const parts=bucket.meshes.map(value=>{
+      value.updateMatrix();const transformed=value.geometry.clone().applyMatrix4(value.matrix);transformed.deleteAttribute('uv');
+      const geometry=transformed.index?transformed.toNonIndexed():transformed;if(geometry!==transformed)transformed.dispose();
+      return bakeColor(geometry,(value.material as THREE.MeshStandardMaterial).color);
+    });
     const geometry=mergeGeometries(parts,false);parts.forEach(part=>part.dispose());if(!geometry)continue;
-    meshes.forEach(value=>joint.remove(value));const combined=new THREE.Mesh(geometry,mat);combined.castShadow=true;joint.add(combined);
+    bucket.meshes.forEach(value=>joint.remove(value));const combined=new THREE.Mesh(geometry,bucket.material);combined.castShadow=true;combined.receiveShadow=bucket.receive;joint.add(combined);
   }
 }
 export class Character {

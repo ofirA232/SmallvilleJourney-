@@ -100,28 +100,45 @@ export function car(parent: THREE.Object3D, color: string, truck = false) {
   return root;
 }
 
+/** Bake a material's flat colour into a vertex colour attribute so meshes of many colours share one draw call. */
+export function bakeColor(geometry: THREE.BufferGeometry, color: THREE.Color) {
+  const count = geometry.attributes.position.count, colors = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) { colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b; }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geometry;
+}
+/** A colour-only standard material can join a shared vertex-coloured batch; anything textured, emissive or transparent stays separate. */
+export function plainMaterial(material: THREE.Material): material is THREE.MeshStandardMaterial {
+  return material instanceof THREE.MeshStandardMaterial && !material.map && !material.transparent && material.metalness === 0 && material.emissive.getHex() === 0;
+}
 /** Merge only immutable scenery; moving/story props and character rigs stay separate. */
 export function batchScenery(root: THREE.Group) {
   root.updateWorldMatrix(true, true);
-  const buckets = new Map<THREE.Material, { geometry: THREE.BufferGeometry[]; meshes: THREE.Mesh[] }>();
+  type Bucket = { geometry: THREE.BufferGeometry[]; meshes: THREE.Mesh[]; material: THREE.Material };
+  const buckets = new Map<string, Bucket>();
   const visit = (object: THREE.Object3D) => {
     if (object.userData.dynamic) return;
     if (object instanceof THREE.Mesh && !(object instanceof THREE.InstancedMesh) && !Array.isArray(object.material)) {
-      const data = buckets.get(object.material) ?? { geometry: [], meshes: [] };
-      const geometry = object.geometry.clone().applyMatrix4(object.matrixWorld);
-      geometry.deleteAttribute('uv');
-      data.geometry.push(geometry.index ? geometry.toNonIndexed() : geometry); data.meshes.push(object);
-      buckets.set(object.material, data);
+      const source = object.material, plain = plainMaterial(source);
+      // One batch per shading variant rather than per colour: 190 colours become a handful of draw calls.
+      const key = plain ? `plain|${source.flatShading}|${source.roughness}|${source.side}` : `material|${source.uuid}`;
+      const data: Bucket = buckets.get(key) ?? { geometry: [], meshes: [], material: plain ? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: source.roughness, flatShading: source.flatShading, side: source.side }) : source };
+      const transformed = object.geometry.clone().applyMatrix4(object.matrixWorld);
+      transformed.deleteAttribute('uv');
+      const geometry = transformed.index ? transformed.toNonIndexed() : transformed;
+      if (geometry !== transformed) transformed.dispose();
+      data.geometry.push(plain ? bakeColor(geometry, source.color) : geometry); data.meshes.push(object);
+      buckets.set(key, data);
     }
     for (const child of [...object.children]) visit(child);
   };
   visit(root);
-  for (const [mat, data] of buckets) {
+  for (const data of buckets.values()) {
     const geometry = mergeGeometries(data.geometry, false);
     data.geometry.forEach(value => value.dispose());
     if (!geometry) continue;
     data.meshes.forEach(mesh => mesh.removeFromParent());
-    const combined = new THREE.Mesh(geometry, mat); combined.castShadow = combined.receiveShadow = true;
+    const combined = new THREE.Mesh(geometry, data.material); combined.castShadow = combined.receiveShadow = true;
     root.add(combined);
   }
 }

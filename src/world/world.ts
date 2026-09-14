@@ -24,6 +24,9 @@ export class World {
   markerRing: THREE.Mesh;
   markerNormal = at('farm');
   clouds: THREE.Group[] = [];
+  private cloudMeshes:THREE.InstancedMesh[]=[];
+  private cloudPuffs:{cloud:number;mesh:number;index:number;local:THREE.Matrix4}[]=[];
+  private puffMatrix=new THREE.Matrix4();
   meteorGroup = new THREE.Group();
   skyPoints: THREE.Points;
   roadPoints: THREE.Vector3[] = [];
@@ -374,11 +377,20 @@ export class World {
     }
   }
   addClouds() {
+    // Thirteen drifting clouds are 65 puffs; two instanced meshes draw them instead of 65 separate calls.
+    const geometry=new THREE.IcosahedronGeometry(1,1);
+    const meshes=[new THREE.InstancedMesh(geometry,material('#d4ddc6'),13*3),new THREE.InstancedMesh(geometry,material('#e5e3cc'),13*2)];
+    const counts=[0,0],puff=new THREE.Object3D();
     for(let i=0;i<13;i++){
       const cloud=new THREE.Group();
-      for(let j=0;j<5;j++)ball(cloud,j%2?'#e5e3cc':'#d4ddc6',(j-2)*.49,Math.sin(j*2)*.18,0,.45+this.random()*.12,.26+this.random()*.14,.37);
-      cloud.userData.phase=i*2.399;cloud.userData.latitude=(this.random()-.5)*1.8;cloud.userData.radius=PLANET_RADIUS+3+this.random()*1.8;this.clouds.push(cloud);this.root.add(cloud);
+      for(let j=0;j<5;j++){
+        puff.position.set((j-2)*.49,Math.sin(j*2)*.18,0);puff.scale.set(.45+this.random()*.12,.26+this.random()*.14,.37);puff.updateMatrix();
+        const mesh=j%2;this.cloudPuffs.push({cloud:i,mesh,index:counts[mesh]++,local:puff.matrix.clone()});
+      }
+      cloud.userData.phase=i*2.399;cloud.userData.latitude=(this.random()-.5)*1.8;cloud.userData.radius=PLANET_RADIUS+3+this.random()*1.8;this.clouds.push(cloud);
     }
+    for(const mesh of meshes){mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;this.root.add(mesh);}
+    this.cloudMeshes=meshes;
   }
   placeActor(id: ActorId, location: LocationId, point: Point, visible=true) {
     const actor=this.characters.get(id)!;actor.root.visible=visible;
@@ -443,8 +455,10 @@ export class World {
     this.clouds.forEach(cloud=>{
       const angle=cloud.userData.phase+animTime*.009,latitude=cloud.userData.latitude;
       cloud.position.set(Math.cos(latitude)*Math.sin(angle),Math.sin(latitude),Math.cos(latitude)*Math.cos(angle)).multiplyScalar(cloud.userData.radius);
-      cloud.quaternion.setFromUnitVectors(UP,cloud.position.clone().normalize());
+      cloud.quaternion.setFromUnitVectors(UP,cloud.position.clone().normalize());cloud.updateMatrix();
     });
+    for(const puff of this.cloudPuffs)this.cloudMeshes[puff.mesh].setMatrixAt(puff.index,this.puffMatrix.multiplyMatrices(this.clouds[puff.cloud].matrix,puff.local));
+    for(const mesh of this.cloudMeshes)mesh.instanceMatrix.needsUpdate=true;
     for(const actor of this.characters.values())if(actor.root.visible&&actor.id!==sceneActor)actor.update(dt,0,false,false,reduced);
     this.meteorGroup.visible=intro;
     if(intro)this.meteorGroup.children.forEach((meteor,index)=>{const travel=(animTime*.27+index*.113)%1;meteor.position.set(-14+index*2.8,37-travel*30,24-travel*15);meteor.rotation.z=-.35;meteor.scale.setScalar(reduced?0:1);});
