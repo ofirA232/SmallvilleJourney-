@@ -89,3 +89,7 @@ Draw calls per frame: globe view 415 to 133, follow view 229 to 82, superspeed 1
 Automatic graphics now measures the share of slow frames rather than the average, so one-off stalls (model decode, shader compile, a returning tab) no longer lock a fast machine into a lower tier, and a drop recovers after eight seconds of near-perfect frames, at most three times per session. Netlify now serves hashed bundles as immutable and models with an hourly cache.
 
 Validation: 50 unit tests, the production trail scenario and the full browser suite. A physical-device retest on a weaker machine is still the only way to confirm the whole-game gain there.
+
+### September 20 - Supplied piano opening music
+
+Added the user's supplied 970 KB MP3 as `public/audio/opening-piano.mp3`. A title-screen Play opening music button starts the track through a user gesture. The track loops through the title/prologue, respects the shared sound setting and pauses on focus loss or hidden tabs. Entering gameplay stops and rewinds it; returning to the title resumes it if sound remains enabled. Playback rejection leaves a retryable button. Streaming uses an HTML audio element with preload disabled, independent of the graphics loop and synthesized gameplay audio.

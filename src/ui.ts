@@ -56,6 +56,7 @@ export class UI {
         <p class="landing-copy">Before the cape. Before the city.<br>A boy, a small town, and a world of possibility.<br> Step into Clark Kent’s story.</p>
         <div class="landing-episode"><span class="episode-number">${pad(episode.number)}</span><div><span class="eyebrow">${seasonLabel} · THE BEGINNING</span><h2>${episode.title}</h2><p>${episode.tagline??episode.description}</p></div></div>
         <button id="begin-button" class="primary-button"><span>Begin your journey</span>${svg('arrow')}</button>
+        <button id="opening-music-button" class="text-button" aria-pressed="false">Play opening music</button>
         <div class="landing-meta"><span>${svg('clock')} A 10–15 minute adventure</span><span class="meta-dot">·</span><span>Your story saves as you go</span></div>
         <button id="landing-new" class="text-button" hidden>Start a new journey</button>
       </main>

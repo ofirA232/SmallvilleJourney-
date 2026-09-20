@@ -59,7 +59,7 @@ The intended first-play duration is **10–15 minutes**, depending on reading, o
 
 The pilot covers the meteor-shower opening, the Kent family, the missed bus and school day, Lana's necklace, Lex's rescue, the spacecraft, the cemetery and mansion conversations, the Wall of Weird, Riley Field, Jeremy's confrontation, and the barn ending. All dialogue is newly written for this compressed game adaptation. Some activities and presentation are simplified for play.
 
-The world and character models are generated in Three.js. Sound effects and a quiet musical atmosphere are synthesized with Web Audio. The project does not embed episode footage, cast recordings, or a television soundtrack. The underlying Little Planet code is not a dependency.
+The world and character models are generated in Three.js. Gameplay sound effects and ambience are synthesized with Web Audio. The opening screen and prologue use the supplied piano MP3 in `public/audio/opening-piano.mp3`; choose **Play opening music** to enable it. The shared sound control mutes it, and it stops when gameplay begins. The file streams on demand rather than blocking initial loading. The project does not embed episode footage, cast recordings, or a television soundtrack. The underlying Little Planet code is not a dependency.
 
 ## Saves and replay
 
