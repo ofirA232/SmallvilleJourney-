@@ -1,5 +1,5 @@
 import './style.css';
-import { StoryMusic } from './core/story-music';
+import { StoryScore } from './core/story-music';
 import { OpeningMusic } from './core/opening-music';
 import { SpeedTrail } from './world/speed-trail';
 import { accelerateOccluders } from './core/camera-occlusion';
@@ -52,7 +52,7 @@ class Game {
   camera = new CameraRig(this.player);
   navigator: Navigator;
   audio = new GameAudio();
-  storyMusic = new StoryMusic();
+  storyScore = new StoryScore(episode.quests.map(quest => quest.id));
   openingMusic = new OpeningMusic(element<HTMLButtonElement>('opening-music-button'));
   encounters=new EncounterUI(()=>this.pauseInputs(),success=>{this.audio.setPaused(false);this.audio.feedback(success);},()=>{this.world.endPreview();this.renderDirty=true;});
   notes=new FieldNotes(story,()=>this.pauseInputs(),()=>{ui.updateStory(story);this.world.syncMemories(story.memories);this.audio.chime();});
@@ -146,7 +146,9 @@ class Game {
     this.resize();this.renderer.compile(this.scene,this.camera.camera);
     this.lastTime=performance.now();requestAnimationFrame(time=>this.frame(time));
   }
-  syncStoryMusic(){this.storyMusic.sync(this.mode==='playing'&&ui.dialogue?.id==='morning',this.settings.sound,document.hidden||!this.focused||!!document.querySelector('dialog[open]'));}
+  // Menus silence the scene. The strength encounters and the closing panel are part of it,
+  // so their tracks play on—the last one needs the completion screen to hear its fade.
+  syncStoryMusic(){this.storyScore.sync(story.index,ui.dialogue?.id??null,this.mode==='playing',this.settings.sound,document.hidden||!this.focused||!!document.querySelector('dialog[open]:not(#encounter):not(#completion)'));}
   updateContinue(){element('begin-button').querySelector('span')!.textContent=story.hadSave?(story.complete?'Return to Smallville':'Continue your journey'):'Begin your journey';element('landing-new').hidden=!story.hadSave;}
   async setSettings(settings:Settings){
     if(settings.quality!==this.settings.quality)this.renderQuality.reset();

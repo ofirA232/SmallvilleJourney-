@@ -97,3 +97,20 @@ Added the user's supplied 970 KB MP3 as `public/audio/opening-piano.mp3`. A titl
 ### September 20 - Kent family conversation soundtrack
 
 The supplied Long Way Around instrumental streams from `public/audio/kent-morning.mp3` during the `morning` dialogue only, at 28% volume. Optional conversation branches keep the music running; finishing the dialogue stops and rewinds it. It honors the global sound preference and pauses for focus loss, hidden tabs and modal menus. The opening piano remains separate and is stopped during gameplay. Preload is disabled so the 3.65 MB file is requested only when the scene plays with sound enabled.
+
+### September 20 - A cue-driven score with faded handovers
+
+The episode's story music is driven by a cue table in `src/core/story-music.ts` rather than a single dialogue check. Each cue names the objective it belongs to, the dialogue that opens it, the objective that ends it, and optionally an `offset` that skips a track's intro. Every track streams at 15% volume (down from 28%) and leaves by riding its volume to zero over 2.6 seconds on an animation frame.
+
+- `kent-morning.mp3` opens with the kitchen conversation, carries the feed-crate encounter, and fades out the moment `The first bell` becomes the objective - so it is already silent during the run to school.
+- `everywhere-you-go.mp3` opens on Pete's line at school, carries the Lana conversation, and fades out when `A moment above the river` becomes the objective.
+- `unstoppable.mp3` opens when Clark steps onto Loeb Bridge, carries the crash, the dive and both strength encounters, and fades out when `An unlikely beginning` becomes the objective.
+- `everything.mp3` opens from 0:23 with the family on the porch, carries the whole loft ending, and fades out over the completion panel. A cue with an offset loops back to the offset rather than to the top, and seeks there before its first play so the skipped intro is never heard.
+
+A cue latches once started, so finishing a dialogue never rewinds the track mid-stretch, and a cue the player never started stays silent instead of fading in from a reloaded save. `until` accepts `complete` for a cue that runs to the end of the episode. The constructor rejects a cue whose objectives are not a forward span, so a mistyped id fails at boot rather than silently going quiet. Fades stall while the tab is hidden, unfocused or muted, and the level resets once the stretch is left. In-world encounters and the completion panel do not count as modal menus for these tracks, so the minigames never cut a stretch off and the closing fade is audible. The opening piano remains separate. Preload stays disabled, so each 3-9 MB file is requested only when its stretch plays with sound enabled.
+
+### September 20 - The prom promise and the daydream ending
+
+Two pilot scenes were rewritten in `src/content/pilot.ts`. The cemetery conversation now ends with Clark asking Lana to the spring formal; she is already going with Whitney, and when he backs off she tells him to come anyway and promises to save him the last dance.
+
+The loft finale pays that off. Lana is waiting in the barn in her dress, they dance in the lamplight with no music, and then the wind moves through the corn and the barn is empty - it was only ever a daydream. Clark returns to the telescope, watches her walk home far down the road and sees her stop and look back toward the farm, then lifts his eyes to the stars he fell from. The episode closes on `Every legend starts somewhere. This one starts here.`

@@ -65,7 +65,12 @@ const conversations: DialogueDefinition[] = [
     line('lana', 'People tell me what my parents were like. Sometimes I wish I had just one more memory of my own.'),
     line('clark', 'I found out something about my family. Now I do not know where I fit.'),
     line('lana', 'Maybe fitting somewhere is not something you find all at once.'),
-    line('narrator', 'For a little while, the quiet is shared. Clark does not need an answer to stay and listen.'),
+    line('narrator', 'For a little while, the quiet is shared. Then Clark finds the question he has been carrying around all day.'),
+    line('clark', 'The spring formal is tonight. I keep thinking I should have asked you to go with me.'),
+    line('lana', 'Clark… I am going with Whitney. I said yes to him last week.'),
+    line('clark', 'Right. Of course you are. Forget I said anything.'),
+    line('lana', 'Do not do that. Come anyway—and if you do, I promise I will save you the last dance.'),
+    line('narrator', 'She says it like it is already settled. Clark walks home with it turning over in his head.'),
   ], [{ label: 'Ask about the necklace', lines: [line('lana', 'I gave it to Whitney for the game. He says it is good luck.'), line('narrator', 'Without the green stone between them, Clark notices how easy it is to stand beside her.')] }]),
   dialogue('mansion', [
     line('lex', 'Clark. I thought a truck might be a better thank-you than a card.'),
@@ -151,8 +156,15 @@ const conversations: DialogueDefinition[] = [
   dialogue('loft', [
     line('narrator', 'Up in the loft, the telescope points beyond the fields. Somewhere across town, the dance is ending.'),
     line('clark', 'Maybe one day I will know how to tell her everything.'),
-    line('narrator', 'For a moment, Clark imagines a dance he did not get to have. Then the wind moves through the corn, and he is home.'),
-    line('narrator', 'The world is a little less ordinary than it was this morning. The boy looking out at it is still Clark Kent.'),
+    line('narrator', 'A sound on the boards below. Lana is standing in the barn in the dress from the formal, one hand held out.'),
+    line('lana', 'You came after all. I told you I was saving you the last dance.'),
+    line('narrator', 'There is no music down there, and it does not matter. They turn slowly in the lamplight, and for once nothing about Clark is strange.'),
+    line('clark', 'I could stay right here.'),
+    line('narrator', 'Then the wind moves through the corn, and the barn below him is empty. It was only ever a daydream.'),
+    line('narrator', 'Clark leans back into the telescope. Far down the road Lana is walking home—and she stops, and looks back toward the farm.'),
+    line('clark', 'Goodnight, Lana.'),
+    line('narrator', 'He lifts his eyes past the weathervane, past the fields, to the stars he fell from.'),
+    line('narrator', 'The world is a little less ordinary than it was this morning. The boy looking up at it is still Clark Kent—for now. Every legend starts somewhere. This one starts here.'),
   ]),
 ];
 
