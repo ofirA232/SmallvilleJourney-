@@ -1,4 +1,5 @@
 import './style.css';
+import { StoryMusic } from './core/story-music';
 import { OpeningMusic } from './core/opening-music';
 import { SpeedTrail } from './world/speed-trail';
 import { accelerateOccluders } from './core/camera-occlusion';
@@ -51,6 +52,7 @@ class Game {
   camera = new CameraRig(this.player);
   navigator: Navigator;
   audio = new GameAudio();
+  storyMusic = new StoryMusic();
   openingMusic = new OpeningMusic(element<HTMLButtonElement>('opening-music-button'));
   encounters=new EncounterUI(()=>this.pauseInputs(),success=>{this.audio.setPaused(false);this.audio.feedback(success);},()=>{this.world.endPreview();this.renderDirty=true;});
   notes=new FieldNotes(story,()=>this.pauseInputs(),()=>{ui.updateStory(story);this.world.syncMemories(story.memories);this.audio.chime();});
@@ -134,9 +136,9 @@ class Game {
     element('retry-button').addEventListener('click',()=>{ui.close('retry');this.restoreCheckpoint();ui.toast('One more try',story.quest?.description??'Try the current objective again.');});
     element('keep-exploring').addEventListener('click',()=>{ui.close('completion');ui.toast('Make yourself at home','The story is complete. The little world is still yours.');});
     window.addEventListener('resize',()=>this.resize());
-    document.addEventListener('visibilitychange',()=>{this.openingMusic.sync(this.mode!=='playing',document.hidden||!this.focused);this.pauseInputs();this.lastTime=performance.now();this.accumulator=0;this.audio.setPaused(document.hidden||ui.paused||this.mode!=='playing');});
-    window.addEventListener('blur',()=>{this.focused=false;this.openingMusic.sync(this.mode!=='playing',true);this.pauseInputs();this.audio.setPaused(true);});
-    window.addEventListener('focus',()=>{this.focused=true;this.openingMusic.sync(this.mode!=='playing',document.hidden||ui.paused);this.lastTime=performance.now();this.accumulator=0;});
+    document.addEventListener('visibilitychange',()=>{this.syncStoryMusic();this.openingMusic.sync(this.mode!=='playing',document.hidden||!this.focused);this.pauseInputs();this.lastTime=performance.now();this.accumulator=0;this.audio.setPaused(document.hidden||ui.paused||this.mode!=='playing');});
+    window.addEventListener('blur',()=>{this.focused=false;this.syncStoryMusic();this.openingMusic.sync(this.mode!=='playing',true);this.pauseInputs();this.audio.setPaused(true);});
+    window.addEventListener('focus',()=>{this.focused=true;this.syncStoryMusic();this.openingMusic.sync(this.mode!=='playing',document.hidden||ui.paused);this.lastTime=performance.now();this.accumulator=0;});
     window.addEventListener('pagehide',()=>{if(this.mode==='playing')story.save();});
     canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();this.contextLost=true;this.pauseInputs();this.audio.setPaused(true);showFallback('The graphics connection was interrupted. Your last completed objective is saved.');});
     canvas.addEventListener('webglcontextrestored',()=>location.reload());
@@ -144,12 +146,13 @@ class Game {
     this.resize();this.renderer.compile(this.scene,this.camera.camera);
     this.lastTime=performance.now();requestAnimationFrame(time=>this.frame(time));
   }
+  syncStoryMusic(){this.storyMusic.sync(this.mode==='playing'&&ui.dialogue?.id==='morning',this.settings.sound,document.hidden||!this.focused||!!document.querySelector('dialog[open]'));}
   updateContinue(){element('begin-button').querySelector('span')!.textContent=story.hadSave?(story.complete?'Return to Smallville':'Continue your journey'):'Begin your journey';element('landing-new').hidden=!story.hadSave;}
   async setSettings(settings:Settings){
     if(settings.quality!==this.settings.quality)this.renderQuality.reset();
     this.openingMusic.sync(this.mode!=='playing',document.hidden||!this.focused);this.openingMusic.setEnabled(settings.sound);
-    this.settings={...settings};const worked=await this.audio.setEnabled(settings.sound);
-    if(!worked){this.openingMusic.setEnabled(false);this.settings.sound=false;ui.toast('Sound is unavailable','You can keep exploring with sound turned off.');}
+    this.settings={...settings};this.syncStoryMusic();const worked=await this.audio.setEnabled(settings.sound);
+    if(!worked){this.openingMusic.setEnabled(false);this.settings.sound=false;this.syncStoryMusic();ui.toast('Sound is unavailable','You can keep exploring with sound turned off.');}
     try{storage?.setItem('smallville-settings-v1',JSON.stringify(this.settings));}catch{ /* A preference should never block play. */ }
     ui.syncSettings(this.settings);this.resize();
   }
@@ -237,13 +240,13 @@ class Game {
     else this.resolveInteraction(quest);
   }
   resolveInteraction(quest:QuestDefinition){
-    const done=()=>{
+    const done=()=>{this.syncStoryMusic();
       if(quest.id==='bridge-moment'){
         this.pauseInputs();this.renderDirty=true;
         this.bridgeScene=new BridgeScene(this.player,this.world.dynamic.car!,()=>{this.bridgeScene=null;this.completeQuest(quest.id);this.camera.snap();});
       }else this.completeQuest(quest.id);
     };
-    if(quest.dialogue)ui.startDialogue(episode.dialogues[quest.dialogue],done);else done();
+    if(quest.dialogue){ui.startDialogue(episode.dialogues[quest.dialogue],done);this.syncStoryMusic();}else done();
   }
   completeQuest(id:string){
     const previous=story.quest; if(!story.advance(id))return;
@@ -332,6 +335,7 @@ class Game {
   frame(time:number){
     requestAnimationFrame(next=>this.frame(next));
     this.encounters.update(Math.max(0,(time-this.lastTime)/1000));
+    this.syncStoryMusic();
     this.openingMusic.sync(this.mode!=='playing',document.hidden||!this.focused||ui.paused);
     const paused=ui.paused||!this.focused;
     const pauseChanged=paused!==this.wasPaused;

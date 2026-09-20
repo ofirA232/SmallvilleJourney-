@@ -93,3 +93,7 @@ Validation: 50 unit tests, the production trail scenario and the full browser su
 ### September 20 - Supplied piano opening music
 
 Added the user's supplied 970 KB MP3 as `public/audio/opening-piano.mp3`. A title-screen Play opening music button starts the track through a user gesture. The track loops through the title/prologue, respects the shared sound setting and pauses on focus loss or hidden tabs. Entering gameplay stops and rewinds it; returning to the title resumes it if sound remains enabled. Playback rejection leaves a retryable button. Streaming uses an HTML audio element with preload disabled, independent of the graphics loop and synthesized gameplay audio.
+
+### September 20 - Kent family conversation soundtrack
+
+The supplied Long Way Around instrumental streams from `public/audio/kent-morning.mp3` during the `morning` dialogue only, at 28% volume. Optional conversation branches keep the music running; finishing the dialogue stops and rewinds it. It honors the global sound preference and pauses for focus loss, hidden tabs and modal menus. The opening piano remains separate and is stopped during gameplay. Preload is disabled so the 3.65 MB file is requested only when the scene plays with sound enabled.
