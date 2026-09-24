@@ -114,3 +114,9 @@ A cue latches once started, so finishing a dialogue never rewinds the track mid-
 Two pilot scenes were rewritten in `src/content/pilot.ts`. The cemetery conversation now ends with Clark asking Lana to the spring formal; she is already going with Whitney, and when he backs off she tells him to come anyway and promises to save him the last dance.
 
 The loft finale pays that off. Lana is waiting in the barn in her dress, they dance in the lamplight with no music, and then the wind moves through the corn and the barn is empty - it was only ever a daydream. Clark returns to the telescope, watches her walk home far down the road and sees her stop and look back toward the farm, then lifts his eyes to the stars he fell from. The episode closes on `Every legend starts somewhere. This one starts here.`
+
+### September 24 - Responsive navigation minimap
+
+Added a north-up equirectangular map of the spherical world with named landmarks, a white player heading arrow and a gold objective marker. The map's Go to objective button uses the existing obstacle-aware navigator. It can be collapsed, has accessible labels and 44px controls, and hides during conversations, story scenes, restraint and nearby interactions. Desktop places it beneath the upper-right toolbar; touch layouts put it above the action controls. Static terrain is drawn once on a small canvas; dynamic markers refresh with the HUD, with no additional WebGL draw calls.
+
+Production build passed. Desktop and mobile browser checks passed for screen bounds, non-overlap with controls/objective, live position updates, collapse/reopen, settings hiding, objective navigation and dialogue hiding. Visual screenshots are in the local `test-results/minimap` directory.

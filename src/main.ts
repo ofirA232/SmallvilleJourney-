@@ -1,4 +1,5 @@
 import './style.css';
+import { MiniMap } from './minimap';
 import { StoryScore } from './core/story-music';
 import { OpeningMusic } from './core/opening-music';
 import { SpeedTrail } from './world/speed-trail';
@@ -51,6 +52,7 @@ class Game {
   carriedModels=new Map<NpcId,Character>();
   camera = new CameraRig(this.player);
   navigator: Navigator;
+  minimap = new MiniMap(()=>this.navigate());
   audio = new GameAudio();
   storyScore = new StoryScore(episode.quests.map(quest => quest.id));
   openingMusic = new OpeningMusic(element<HTMLButtonElement>('opening-music-button'));
@@ -324,6 +326,7 @@ class Game {
   }
   snapshot():GameSnapshot{return{ready:this.ready,mode:this.mode,questId:story.quest?.id??null,questIndex:story.index,nearby:this.nearby,moving:this.player.moving,speed:Number(this.player.speed.toFixed(3)),superSpeed:this.player.superSpeed,swimming:this.player.swimming,weakened:this.player.weakened,height:Number(this.player.height.toFixed(3)),normal:this.player.normal.toArray(),routeActive:this.navigator.active,dialogueOpen:!!ui.dialogue,completed:story.complete,view:this.camera.view,location:this.currentLocation};}
   updateHud(){
+    this.minimap.update(this.player.normal,this.player.forward,this.currentLocation,story.quest,this.mode==='playing'&&!ui.paused&&!this.nearby&&!story.restrained&&!this.bridgeScene&&!this.fieldRescue&&!this.truckAttack);
     this.hudTime=0;
     const note=this.mode==='playing'&&!ui.paused&&!this.action&&!story.restrained&&!this.nearby?(episode.memories??[]).find(value=>!story.memories.has(value.id)&&distance(this.player.normal,at(value.location,value.point))<1.5):undefined;
     this.notes.show(note??null);
