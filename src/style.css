@@ -75,7 +75,7 @@ body.low-graphics .icon-button,body.low-graphics .episode-pill,body.low-graphics
 .valve-wheel{width:min(220px,60vw);height:auto;touch-action:none;cursor:grab;user-select:none}
 .valve-wheel:active{cursor:grabbing}
 .valve-track{fill:none;stroke:#ffffff1a;stroke-width:8}
-.valve-progress{fill:none;stroke:#ffd27a;stroke-width:8;stroke-linecap:round;stroke-dasharray:0 100;transform:rotate(-90deg);transform-origin:100px 100px}
+/*rtl:ignore*/.valve-progress{fill:none;stroke:#ffd27a;stroke-width:8;stroke-linecap:round;stroke-dasharray:0 100;transform:rotate(-90deg);transform-origin:100px 100px}
 .valve-rim{fill:none;stroke:#c24a3a;stroke-width:12}
 .valve-spin line{stroke:#c24a3a;stroke-width:8;stroke-linecap:round}
 .valve-hub{fill:#8a2f25}.valve-grip{fill:#e9d49c}
