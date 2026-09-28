@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { EpisodeDefinition, LocationId, SaveGame, WorldPosition, WorldStatePatch } from '../types';
 import { resolveWorldState } from './world-state';
 
@@ -112,7 +113,7 @@ export class Story {
       if (!this.storage) throw new Error('Storage unavailable');
       this.storage.setItem(this.saveKey, JSON.stringify(this.snapshot()));
       this.saveWarning = '';
-    } catch { this.saveWarning = 'Your browser could not save this journey. You can keep playing, but progress may be lost when you leave.'; }
+    } catch { this.saveWarning = t('Your browser could not save this journey. You can keep playing, but progress may be lost when you leave.'); }
   }
   load() {
     try {
@@ -144,7 +145,7 @@ export class Story {
       this.hadSave = true;
     } catch {
       this.index = 0; this.discoveries.clear();this.memories.clear(); this.hadSave = false;
-      this.saveWarning = 'Your saved journey could not be read. A fresh journey is ready; your old save stays untouched until you begin.';
+      this.saveWarning = t('Your saved journey could not be read. A fresh journey is ready; your old save stays untouched until you begin.');
     }
   }
 }

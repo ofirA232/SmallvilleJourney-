@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import * as THREE from 'three';
 import { CutsceneTimeline, fitFov, type CutsceneDefinition } from './core/cutscene';
 import type { ActorId, NpcId } from './types';
@@ -47,7 +48,7 @@ export class Cutscene {
   constructor(definition: CutsceneDefinition, private hooks: CutsceneHooks, private reducedMotion: () => boolean) {
     this.timeline = new CutsceneTimeline(definition);
     this.root.id = 'cutscene';this.root.className = 'cutscene';this.root.dataset.scene = definition.id;
-    this.root.innerHTML = '<div class="letterbox letterbox-top"><button id="skip-cutscene" type="button">Skip scene <span aria-hidden="true">›</span></button></div><div class="letterbox letterbox-bottom"><p id="cutscene-caption" role="status" aria-live="polite"></p></div><div class="cutscene-flash" aria-hidden="true"></div>';
+    this.root.innerHTML = `<div class="letterbox letterbox-top"><button id="skip-cutscene" type="button">${t('Skip scene')} <span aria-hidden="true">›</span></button></div><div class="letterbox letterbox-bottom"><p id="cutscene-caption" role="status" aria-live="polite"></p></div><div class="cutscene-flash" aria-hidden="true"></div>`;
     this.caption = this.root.querySelector('#cutscene-caption')!;this.flash = this.root.querySelector('.cutscene-flash')!;
     this.root.querySelector('#skip-cutscene')!.addEventListener('click', () => this.finish());
     document.body.appendChild(this.root);document.body.classList.add('cinematic');
@@ -68,12 +69,12 @@ export class Cutscene {
       if (id === 'flash') this.flashNow();
       this.hooks.cue?.(id);
     }
-    const caption = this.captionOverride ?? this.timeline.shotAt(this.elapsed).shot.caption ?? '';
+    const caption = this.captionOverride ?? t(this.timeline.shotAt(this.elapsed).shot.caption ?? '');
     if (this.caption.textContent !== caption) this.caption.textContent = caption;
     if (this.elapsed >= this.timeline.duration) this.finish();
   }
   /** Replaces the shot captions until cleared with null (for interactive scenes). */
-  setCaption(text: string | null) { this.captionOverride = text; this.caption.textContent = text ?? this.timeline.shotAt(this.elapsed).shot.caption ?? ''; }
+  setCaption(text: string | null) { this.captionOverride = text; this.caption.textContent = text ?? t(this.timeline.shotAt(this.elapsed).shot.caption ?? ''); }
   flashNow() { if (this.reducedMotion()) return; this.flash.classList.remove('flashing'); void this.flash.offsetWidth; this.flash.classList.add('flashing'); }
   /** Overrides the rig's camera for this frame. */
   camera(camera: THREE.PerspectiveCamera) {

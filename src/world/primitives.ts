@@ -72,18 +72,23 @@ export function plaque(parent:THREE.Object3D,text:string,x:number,y:number,z:num
   const label=new THREE.Mesh(new THREE.PlaneGeometry(width,height),new THREE.MeshBasicMaterial({map:texture}));label.position.z=.022;root.add(label);return root;
 }
 /** A printed page: a bold headline, a few lines of text and, optionally, a photograph of someone.
- * It is a dynamic group, like plaque(), so scenery batching keeps its texture. */
+ * It is a dynamic group, like plaque(), so scenery batching keeps its texture. In a right-to-left page
+ * (Hebrew) it is laid out from the right, photograph first, in the Hebrew serif. */
 export function clipping(parent:THREE.Object3D,title:string,lines:string[],x:number,y:number,z:number,width:number,height:number,photo=false,paper='#ece2c4'){
   const root=group(parent,x,y,z,true);
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(width,height),new THREE.MeshBasicMaterial({color:paper}));root.add(mesh);
   if(typeof document==='undefined')return root;
   const canvas=document.createElement('canvas');canvas.width=512;canvas.height=Math.round(512*height/width);
   const context=canvas.getContext('2d');if(!context)return root;
+  const rtl=document.documentElement.dir==='rtl',serif=rtl?'"Frank Ruhl Libre", Georgia, serif':'Georgia';
+  // Measured from the reading edge: the left in English, the right in Hebrew.
+  const from=(offset:number,width=0)=>rtl?canvas.width-offset-width:offset;
   context.fillStyle=paper;context.fillRect(0,0,canvas.width,canvas.height);context.fillStyle='#2a2620';context.textBaseline='top';
-  context.font='700 44px Georgia';context.fillText(title,24,20,canvas.width-48);
+  context.direction=rtl?'rtl':'ltr';context.textAlign=rtl?'right':'left';
+  context.font=`700 44px ${serif}`;context.fillText(title,from(24),20,canvas.width-48);
   let text=24;
-  if(photo){context.fillStyle='#8f887a';context.fillRect(24,84,150,170);context.fillStyle='#4d463d';context.beginPath();context.arc(99,150,34,0,Math.PI*2);context.fill();context.fillRect(49,196,100,58);text=196;}
-  context.fillStyle='#3b362e';context.font='26px Georgia';lines.forEach((line,index)=>context.fillText(line,text,86+index*36,canvas.width-text-24));
+  if(photo){context.fillStyle='#8f887a';context.fillRect(from(24,150),84,150,170);context.fillStyle='#4d463d';context.beginPath();context.arc(from(99),150,34,0,Math.PI*2);context.fill();context.fillRect(from(49,100),196,100,58);text=196;}
+  context.fillStyle='#3b362e';context.font=`26px ${serif}`;lines.forEach((line,index)=>context.fillText(line,from(text),86+index*36,canvas.width-text-24));
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
   const mat=mesh.material as THREE.MeshBasicMaterial;mat.map=texture;mat.color.set('#ffffff');
   return root;

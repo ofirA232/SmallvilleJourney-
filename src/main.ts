@@ -21,7 +21,8 @@ import type { StoryScene } from './cutscene';
 import { TruckAttack } from './truck-attack';
 import { FieldRescue } from './field-rescue';
 import * as THREE from 'three';
-import { activeEpisode as episode } from './content/episodes';
+import { activeEpisode } from './content/episodes';
+import { fontsReady, language, localizeEpisode, preferredLanguage, setLanguage, SETTINGS_KEY, t, type Language } from './i18n';
 import { locations } from './content/locations';
 import { Story, validateEpisode } from './core/story';
 import { at, basis, CharacterController, distance, isLocked, surfaceRadius, tangent, UP } from './core/sphere';
@@ -37,12 +38,16 @@ import { Character } from './world/character';
 import { element, UI } from './ui';
 import type { GameSnapshot, LocationId, NpcId, QuestDefinition, Settings } from './types';
 
+let storage: Storage | null = null;
+try { storage = localStorage; } catch { /* Private browsing can make local storage unavailable. */ }
+// The language is chosen before anything is built, and the whole episode is translated once.
+setLanguage(preferredLanguage(storage));
+document.title = t('Smallville Journey — Every legend starts somewhere.');
+const episode = localizeEpisode(activeEpisode);
 const prologue=episode.prologue??[];
 const ui = new UI(episode);
 const canvas = element<HTMLCanvasElement>('world');
 const parameters = new URLSearchParams(location.search);
-let storage: Storage | null = null;
-try { storage = localStorage; } catch { /* Private browsing can make local storage unavailable. */ }
 const story = new Story(episode, storage, locations.map(value => value.id));
 story.load();
 
@@ -75,7 +80,7 @@ class Game {
   fill = new THREE.HemisphereLight('#e7eff8', '#738566', 2.1);
   mode: 'title' | 'intro' | 'playing' = 'title';
   // Sound is on unless the player turned it off: the title greets them with its music.
-  settings: Settings = { sound: true, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, quality: 'auto' };
+  settings: Settings = { sound: true, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, quality: 'auto', language: language() };
   introPage = 0;
   ready = false;
   routeTarget: THREE.Vector3 | null = null;
@@ -128,7 +133,7 @@ class Game {
     this.footShadow=new THREE.Mesh(new THREE.CircleGeometry(.29,22),new THREE.MeshBasicMaterial({color:'#1a382a',opacity:.22,transparent:true,depthWrite:false}));
     this.footShadow.geometry.rotateX(-Math.PI/2);this.scene.add(this.footShadow);
     this.scene.add(this.trail.mesh);
-    try{const saved=JSON.parse(storage?.getItem('smallville-settings-v1')??'null');if(saved&&typeof saved.sound==='boolean'&&typeof saved.reducedMotion==='boolean'&&['auto','low','high'].includes(saved.quality))this.settings=saved;}catch{ /* Default preferences are sufficient. */ }
+    try{const saved=JSON.parse(storage?.getItem(SETTINGS_KEY)??'null');if(saved&&typeof saved.sound==='boolean'&&typeof saved.reducedMotion==='boolean'&&['auto','low','high'].includes(saved.quality))this.settings={...saved,language:language()};}catch{ /* Default preferences are sufficient. */ }
     if(parameters.get('quality')==='low')this.settings.quality='low';
     this.input=new Input(canvas,{
       interact:()=>this.interact(),jump:()=>{if(this.player.jump())this.audio.jump();this.camera.setView('follow');},
@@ -138,7 +143,7 @@ class Game {
       menuEnabled:()=>this.mode==='playing'&&!ui.paused,
       dialogue:()=>!!ui.dialogue,nextDialogue:()=>ui.nextDialogue(),
     });
-    ui.callbacks={navigate:id=>this.navigate(id),restart:()=>this.newGame(),title:()=>this.returnToTitle(),settings:settings=>void this.setSettings(settings),pause:()=>this.pauseInputs()};
+    ui.callbacks={navigate:id=>this.navigate(id),restart:()=>this.newGame(),title:()=>this.returnToTitle(),settings:settings=>void this.setSettings(settings),language:value=>this.changeLanguage(value),pause:()=>this.pauseInputs()};
     element('begin-button').addEventListener('click',()=>story.hadSave?this.resume():this.newGame());
     element('brand-button').addEventListener('click',()=>{if(this.mode==='playing'&&!ui.dialogue)this.returnToTitle();});
     element('intro-next').addEventListener('click',()=>{this.introPage++;if(this.introPage>=prologue.length)this.finishIntro();else this.renderIntro();});
@@ -152,16 +157,16 @@ class Game {
     element('opening-music-button').addEventListener('click',()=>void this.setSettings({...this.settings,sound:!this.openingMusic.playing}));
     element('sound-button').addEventListener('click',()=>void this.setSettings({...this.settings,sound:!this.settings.sound}));
     element('cancel-route').addEventListener('click',()=>this.stopRoute());
-    element('retry-button').addEventListener('click',()=>{ui.close('retry');this.restoreCheckpoint();ui.toast('One more try',story.quest?.description??'Try the current objective again.');});
+    element('retry-button').addEventListener('click',()=>{ui.close('retry');this.restoreCheckpoint();ui.toast(t('One more try'),story.quest?.description??t('Try the current objective again.'));});
     // Closing the ending panel, however it is closed, steps out of the loft into the world.
     element('completion').addEventListener('close',()=>{if(this.cinematic instanceof LoftScene&&story.complete)this.restoreCheckpoint();this.storyScore.release();this.syncStoryMusic();});
-    element('keep-exploring').addEventListener('click',()=>{ui.close('completion');if(this.cinematic)this.restoreCheckpoint();ui.toast('Make yourself at home','The story is complete. The little world is still yours.');});
+    element('keep-exploring').addEventListener('click',()=>{ui.close('completion');if(this.cinematic)this.restoreCheckpoint();ui.toast(t('Make yourself at home'),t('The story is complete. The little world is still yours.'));});
     window.addEventListener('resize',()=>this.resize());
     document.addEventListener('visibilitychange',()=>{this.syncStoryMusic();this.openingMusic.sync(this.mode!=='playing',document.hidden||!this.focused);this.pauseInputs();this.lastTime=performance.now();this.accumulator=0;this.audio.setPaused(document.hidden||ui.paused||this.mode!=='playing');});
     window.addEventListener('blur',()=>{this.focused=false;this.syncStoryMusic();this.openingMusic.sync(this.mode!=='playing',true);this.pauseInputs();this.audio.setPaused(true);});
     window.addEventListener('focus',()=>{this.focused=true;this.syncStoryMusic();this.openingMusic.sync(this.mode!=='playing',document.hidden||ui.paused);this.lastTime=performance.now();this.accumulator=0;});
     window.addEventListener('pagehide',()=>{if(this.mode==='playing')story.save();});
-    canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();this.contextLost=true;this.pauseInputs();this.audio.setPaused(true);showFallback('The graphics connection was interrupted. Your last completed objective is saved.');});
+    canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();this.contextLost=true;this.pauseInputs();this.audio.setPaused(true);showFallback(t('The graphics connection was interrupted. Your last completed objective is saved.'));});
     canvas.addEventListener('webglcontextrestored',()=>location.reload());
     this.restoreCheckpoint();ui.setPlaying(false);ui.updateStory(story);ui.syncSettings(this.settings);this.updateContinue();
     this.openingMusic.setEnabled(this.settings.sound);
@@ -171,13 +176,20 @@ class Game {
   // Menus silence the scene. The strength encounters and the closing panel are part of it,
   // so their tracks play on—the last one plays out behind the completion screen.
   syncStoryMusic(){this.storyScore.sync(story.index,ui.dialogue?.id??null,this.mode==='playing',this.settings.sound,document.hidden||!this.focused||!!document.querySelector('dialog[open]:not(#encounter):not(#completion)'));}
-  updateContinue(){element('begin-button').querySelector('span')!.textContent=story.hadSave?(story.complete?'Return to Smallville':'Continue your journey'):'Begin your journey';element('landing-new').hidden=!story.hadSave;}
+  updateContinue(){element('begin-button').querySelector('span')!.textContent=story.hadSave?(story.complete?t('Return to Smallville'):t('Continue your journey')):t('Begin your journey');element('landing-new').hidden=!story.hadSave;}
+  /** Saves the new language and reloads, so every part of the game is built in it. The story is saved first. */
+  changeLanguage(value:Language){
+    if(value===language())return;
+    if(this.mode==='playing')story.save();
+    try{storage?.setItem(SETTINGS_KEY,JSON.stringify({...this.settings,language:value}));}catch{ /* Without storage the page cannot remember it. */ }
+    location.reload();
+  }
   async setSettings(settings:Settings){
     if(settings.quality!==this.settings.quality)this.renderQuality.reset();
     this.openingMusic.sync(this.mode!=='playing',document.hidden||!this.focused);this.openingMusic.setEnabled(settings.sound);
     this.settings={...settings};this.syncStoryMusic();const worked=await this.audio.setEnabled(settings.sound);
-    if(!worked){this.openingMusic.setEnabled(false);this.settings.sound=false;this.syncStoryMusic();ui.toast('Sound is unavailable','You can keep exploring with sound turned off.');}
-    try{storage?.setItem('smallville-settings-v1',JSON.stringify(this.settings));}catch{ /* A preference should never block play. */ }
+    if(!worked){this.openingMusic.setEnabled(false);this.settings.sound=false;this.syncStoryMusic();ui.toast(t('Sound is unavailable'),t('You can keep exploring with sound turned off.'));}
+    try{storage?.setItem(SETTINGS_KEY,JSON.stringify(this.settings));}catch{ /* A preference should never block play. */ }
     ui.syncSettings(this.settings);this.resize();
   }
   resize(){
@@ -200,9 +212,9 @@ class Game {
     ui.cancelDialogue();ui.closeAll();story.newGame();this.pauseInputs();this.restoreCheckpoint();this.mode='intro';this.camera.setView('globe');this.camera.theta=-.3;this.camera.phi=1.05;this.camera.globeZoom=1;
     this.introPage=0;ui.setPlaying(false);element('landing').hidden=true;element('prologue').hidden=false;if(prologue.length)this.renderIntro();else this.finishIntro();ui.updateStory(story);void this.setSettings(this.settings);
   }
-  renderIntro(){const page=prologue[this.introPage];element('intro-year').textContent=page.year;element('intro-title').textContent=page.title;element('intro-text').textContent=page.text;element('intro-pages').textContent=prologue.map((_,index)=>index===this.introPage?'●':'○').join('  ');element('intro-next').querySelector('span')!.textContent=this.introPage===prologue.length-1?'Step into the story':'Continue';}
+  renderIntro(){const page=prologue[this.introPage];element('intro-year').textContent=page.year;element('intro-title').textContent=page.title;element('intro-text').textContent=page.text;element('intro-pages').textContent=prologue.map((_,index)=>index===this.introPage?'●':'○').join('  ');element('intro-next').querySelector('span')!.textContent=this.introPage===prologue.length-1?t('Step into the story'):t('Continue');}
   finishIntro(){element('prologue').hidden=true;this.mode='playing';ui.setPlaying(true);this.camera.setView('follow');this.camera.snap();this.restoreCheckpoint();canvas.focus({preventScroll:true});ui.toast(episode.openingHint?.title??episode.title,episode.openingHint?.text??story.quest?.description??episode.description,4.8);}
-  resume(){this.mode='playing';ui.setPlaying(true);this.camera.setView('follow');this.restoreCheckpoint();void this.setSettings(this.settings);canvas.focus({preventScroll:true});ui.toast(story.complete?'Welcome home':'Right where you left off',story.complete?'Take your time. There is always more to see.':story.quest!.title);}
+  resume(){this.mode='playing';ui.setPlaying(true);this.camera.setView('follow');this.restoreCheckpoint();void this.setSettings(this.settings);canvas.focus({preventScroll:true});ui.toast(story.complete?t('Welcome home'):t('Right where you left off'),story.complete?t('Take your time. There is always more to see.'):story.quest!.title);}
   returnToTitle(){if(ui.dialogue)return;this.fence?.dispose();this.fence=null;this.valve?.dispose();this.valve=null;this.truckAttack?.dispose();this.truckAttack=null;this.clark.root.visible=true;
     this.fieldRescue?.dispose();this.fieldRescue=null;this.cinematic?.dispose();this.cinematic=null;this.pauseInputs();ui.closeAll();if(this.mode==='playing')story.save();this.mode='title';element('prologue').hidden=true;ui.setPlaying(false);this.camera.setView('globe');this.camera.theta=-.33;this.camera.phi=1.06;this.camera.globeZoom=1;this.updateContinue();ui.updateStory(story);}
   restoreCheckpoint(){
@@ -222,15 +234,15 @@ class Game {
   stopRoute(){this.navigator?.stop();this.routeTarget=null;element('route-status').hidden=true;}
   navigate(location?:LocationId){
     if(this.cinematic||this.fieldRescue||this.truckAttack)return;
-    if(this.mode!=='playing'){ui.toast('Your story is waiting','Begin your journey to walk around Smallville.');return;}
-    if(story.restrained){ui.toast(story.quest?.title??'A moment to wait',story.quest?.description??'Use the nearby interaction to continue.');return;}
+    if(this.mode!=='playing'){ui.toast(t('Your story is waiting'),t('Begin your journey to walk around Smallville.'));return;}
+    if(story.restrained){ui.toast(story.quest?.title??t('A moment to wait'),story.quest?.description??t('Use the nearby interaction to continue.'));return;}
     if(ui.dialogue||this.action)return;
-    if(location==='metropolis'){ui.toast('A future chapter','Metropolis will open as Clark’s story continues.');return;}
+    if(location==='metropolis'){ui.toast(t('A future chapter'),t('Metropolis will open as Clark’s story continues.'));return;}
     const quest=story.quest,section=!location?this.fence?.nextTarget():null;const target=section??(location?at(location,[0,2.8]):quest?at(quest.location,quest.point):null);if(!target)return;
-    this.setRoute(target,!location,section?'To the next broken section':location?`Wandering to ${locations.find(value=>value.id===location)!.name}`:`On your way · ${quest!.title}`);
+    this.setRoute(target,!location,section?t('To the next broken section'):location?t('Wandering to {place}',{place:t(locations.find(value=>value.id===location)!.name)}):t('On your way · {title}',{title:quest!.title}));
   }
   setRoute(target:THREE.Vector3,quest:boolean,label:string){
-    if(!this.navigator.plan(this.player.normal,target)){ui.toast('A different way around','That spot is hard to reach. Try the nearby path or walk there with the movement controls.');return;}
+    if(!this.navigator.plan(this.player.normal,target)){ui.toast(t('A different way around'),t('That spot is hard to reach. Try the nearby path or walk there with the movement controls.'));return;}
     this.routeTarget=target;this.routeIsQuest=quest;this.camera.setView('follow');element('route-label').textContent=label;element('route-status').hidden=false;canvas.focus({preventScroll:true});
   }
   clickGround(x:number,y:number){
@@ -238,9 +250,9 @@ class Game {
     if(story.restrained||this.action)return;
     const bounds=canvas.getBoundingClientRect(),ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2((x-bounds.left)/bounds.width*2-1,-(y-bounds.top)/bounds.height*2+1),this.camera.camera);
     const hit=ray.intersectObjects([this.world.terrain,this.world.water],false)[0];if(!hit)return;
-    const target=hit.point.clone().normalize();if(isLocked(target)){ui.toast('Metropolis · Coming later','There is a bigger world ahead. For now, your story begins in Smallville.');return;}
+    const target=hit.point.clone().normalize();if(isLocked(target)){ui.toast(t('Metropolis · Coming later'),t('There is a bigger world ahead. For now, your story begins in Smallville.'));return;}
     const quest=story.quest;const isQuest=!!quest&&distance(target,at(quest.location,quest.point))<1.8;
-    this.setRoute(isQuest?at(quest!.location,quest!.point):target,isQuest,'Taking the scenic route');
+    this.setRoute(isQuest?at(quest!.location,quest!.point):target,isQuest,t('Taking the scenic route'));
   }
   get nearby(){const quest=story.quest;return !!quest&&distance(this.player.normal,at(quest.location,quest.point))<(quest.radius??1.65);}
   interact(){
@@ -248,8 +260,8 @@ class Game {
     if(this.fence){if(this.mode==='playing'&&!ui.paused)this.fence.interact();return;}
     if(this.mode==='playing'&&!ui.paused&&!this.action&&!this.nearby&&this.notes.observe())return;
     const quest=story.quest;if(this.mode!=='playing'||ui.paused||this.action||!quest||!this.nearby)return;
-    if(quest.kind==='strength'&&!story.world.player.abilities.includes('super-strength')){ui.toast('A power still to come','Super strength is not available in this part of the story.');return;}
-    if((quest.kind==='strength'||quest.kind==='rescue')&&this.player.weakened){ui.toast('A little distance','Step away from the green stone to regain your strength.');return;}
+    if(quest.kind==='strength'&&!story.world.player.abilities.includes('super-strength')){ui.toast(t('A power still to come'),t('Super strength is not available in this part of the story.'));return;}
+    if((quest.kind==='strength'||quest.kind==='rescue')&&this.player.weakened){ui.toast(t('A little distance'),t('Step away from the green stone to regain your strength.'));return;}
     this.pauseInputs();this.camera.setView('follow');
     if(quest.id==='truck'){
       this.truckAttack=new TruckAttack(this.player,this.world.dynamic.truck!,this.world.characters.get('jeremy')!,()=>this.mode==='playing'&&!ui.paused&&this.focused&&!document.hidden,()=>{
@@ -258,7 +270,7 @@ class Game {
     }
     if(quest.id==='fence'){
       this.fence=new FenceChallenge(this.player,this.world,{cue:id=>this.audio.cue(id),toast:(title,text)=>ui.toast(title,text,2.6),done:()=>{this.fence?.dispose();this.fence=null;this.pauseInputs();this.resolveInteraction(quest);}});
-      ui.toast('Faster than Dad can see','Drive the posts in at super speed while his back is turned. When he looks, hammer like anyone else.',5);
+      ui.toast(t('Faster than Dad can see'),t('Drive the posts in at super speed while his back is turned. When he looks, hammer like anyone else.'),5);
       this.renderDirty=true;return;
     }
     if(quest.id==='free-jeremy'){
@@ -326,10 +338,10 @@ class Game {
     this.action=null;this.world.sync(story);this.race.start(story.quest?.timeLimit??0);ui.updateStory(story);this.audio.chime(story.complete);
     const entry=story.quest?.enterAt;if(entry){this.player.reset(at(entry.location,entry.point));this.camera.snap();}
     if(story.complete){element('interaction-area').hidden=true;element('completion-places').textContent=String(story.discoveries.size);ui.open('completion');return;}
-    if(previous?.chapter!==story.quest?.chapter)ui.toast(`Chapter ${String(story.quest!.chapter+1).padStart(2,'0')}`,episode.chapters[story.quest!.chapter].title,4.8);
+    if(previous?.chapter!==story.quest?.chapter)ui.toast(t('Chapter {number}',{number:String(story.quest!.chapter+1).padStart(2,'0')}),episode.chapters[story.quest!.chapter].title,4.8);
     else if(previous?.completionToast)ui.toast(previous.completionToast.title,previous.completionToast.text);
   }
-  updateLocation(id:LocationId){const location=locations.find(value=>value.id===id)!;element('location-subtitle').textContent=location.subtitle;element('location-name').textContent=location.name;element('location-description').textContent=location.description;}
+  updateLocation(id:LocationId){const location=locations.find(value=>value.id===id)!;element('location-subtitle').textContent=t(location.subtitle);element('location-name').textContent=t(location.name);element('location-description').textContent=t(location.description);}
   tick(dt:number){
     const playing=this.mode==='playing'&&!ui.paused&&!document.hidden&&this.focused;
     if(!playing){this.player.moving=false;return;}
@@ -350,7 +362,7 @@ class Game {
     let running=this.input.running;
     if(this.navigator.active){
       if(this.routeTarget&&distance(this.player.normal,this.routeTarget)<(this.fence&&this.routeIsQuest?.35:this.routeIsQuest?Math.min(1.05,(story.quest?.radius??1.65)*.65):.4)){
-        this.stopRoute();if(this.routeIsQuest&&!this.fence)ui.toast('You have arrived',story.quest?.arrivalText??'Use the gold prompt to take the next step.',2.4);
+        this.stopRoute();if(this.routeIsQuest&&!this.fence)ui.toast(t('You have arrived'),story.quest?.arrivalText??t('Use the gold prompt to take the next step.'),2.4);
       }else{direction=this.navigator.direction(this.player.normal);running=story.quest?.kind==='race';if(!this.navigator.active)this.stopRoute();}
     }
     this.player.update(dt,direction,running&&story.world.player.abilities.includes('super-speed'),this.world.colliders);
@@ -394,7 +406,8 @@ class Game {
     const width=innerWidth,height=innerHeight,text=element('landing').getBoundingClientRect();
     const top=(document.querySelector('.topbar')?.getBoundingClientRect().bottom??0)+8,bar=document.querySelector('.bottom-bar')?.getBoundingClientRect();
     const bottom=bar&&bar.height>0&&bar.top>height*.5?bar.top-8:height-12;
-    const frame=text.width>width*.6?{x0:12,y0:top,x1:width-12,y1:text.top-10}:{x0:text.right+20,y0:top,x1:width-16,y1:bottom};
+    const rtl=document.documentElement.dir==='rtl';
+    const frame=text.width>width*.6?{x0:12,y0:top,x1:width-12,y1:text.top-10}:rtl?{x0:16,y0:top,x1:text.left-20,y1:bottom}:{x0:text.right+20,y0:top,x1:width-16,y1:bottom};
     return Math.min(frame.x1-frame.x0,frame.y1-frame.y0)>140?frame:null;
   }
   updateLabels(){
@@ -418,12 +431,12 @@ class Game {
     this.hudTime=0;
     const note=this.mode==='playing'&&!ui.paused&&!this.action&&!story.restrained&&!this.nearby?(episode.memories??[]).find(value=>!story.memories.has(value.id)&&distance(this.player.normal,at(value.location,value.point))<1.5):undefined;
     this.notes.show(note??null);
-    if(this.fence&&story.quest)ui.updateInteraction({...story.quest,action:this.fence.phase==='watching'?'Hammer it in':'Drive it in at super speed'},this.mode==='playing'&&!ui.paused&&(!!this.fence.working||this.fence.site!==null),this.fence.progress);
+    if(this.fence&&story.quest)ui.updateInteraction({...story.quest,action:this.fence.phase==='watching'?t('Hammer it in'):t('Drive it in at super speed')},this.mode==='playing'&&!ui.paused&&(!!this.fence.working||this.fence.site!==null),this.fence.progress);
     else ui.updateInteraction(story.quest,this.mode==='playing'&&this.nearby&&!ui.paused&&!this.cinematic&&!this.fieldRescue&&!this.truckAttack&&!this.valve,this.action?this.action.elapsed/this.action.duration:0);
     if(this.fence)this.fence.panel.hidden=this.mode!=='playing'||ui.paused;
     element('weakness').hidden=this.mode!=='playing'||!this.player.weakened||ui.paused;
     element('race-status').hidden=this.mode!=='playing'||story.quest?.kind!=='race'||ui.paused;
-    element('race-status').querySelector('span')!.textContent=story.quest?.timerLabel??'THE DANCE STARTS IN';
+    element('race-status').querySelector('span')!.textContent=story.quest?.timerLabel??t('THE DANCE STARTS IN');
     element('race-clock').textContent=`${Math.floor(Math.ceil(this.race.remaining)/60)}:${String(Math.ceil(this.race.remaining)%60).padStart(2,'0')}`;
     element('telemetry').textContent=JSON.stringify({...this.snapshot(),trailVisible:this.trail.mesh.visible,trailSamples:this.trail.sampleCount,reducedMotion:this.settings.reducedMotion,poisonExposure:this.poisonAmount,truckAttack:this.truckAttack?.phase??null,bridgeScene:this.cinematic instanceof BridgeScene,loft:this.cinematic instanceof LoftScene?{phase:this.cinematic.phase,lana:this.world.characters.get('lana')!.root.visible,porch:this.cinematic.porch>=0}:null,truckCab:{door:this.world.truckCab.door.visible,driver:this.world.truckCab.driver.visible,tornDoor:this.world.tornDoor.anchor.visible},bus:this.world.bus.visible,valve:this.valve?{phase:this.valve.phase,turns:Number((this.valve.angle/(Math.PI*2)).toFixed(2)),remaining:Number(this.valve.remaining.toFixed(1))}:null,fence:this.fence?{phase:this.fence.phase,fixed:this.fence.count,strikes:this.fence.strikes,working:!!this.fence.working,site:this.fence.site}:null,porsche:{roof:this.world.porsche.roof.visible,driver:this.world.porsche.driver.visible,tornRoof:this.world.tornRoof.anchor.visible},cutscene:this.cinematic?{id:this.cinematic.id,elapsed:Number(this.cinematic.elapsed.toFixed(2))}:null,fieldRescue:!!this.fieldRescue,restrained:story.restrained,restraintHeight:story.restrained?.34:0,characterModel:this.clark.modelStatus,characterMotion:this.clark.imported?.motion??null,carriedActor:this.carriedActor?{id:this.carriedId,model:this.carriedActor.modelStatus,attached:this.carriedActor.root.parent===this.clark.root}:null,actors:Object.fromEntries([...this.world.characters].map(([id,actor])=>[id,{model:actor.modelStatus,visible:actor.root.visible,necklace:actor.necklace.visible,at:actor.root.position.toArray().map(value=>Number(value.toFixed(2)))}])),camera:this.camera.camera.position.toArray().map(value=>Number(value.toFixed(2))),fps:this.fps,qualityLevel:this.renderQuality.level,pixelRatio:this.renderer.getPixelRatio(),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles});
   }
@@ -504,11 +517,12 @@ class Game {
 function showFallback(detail:string){element('fallback').hidden=false;element('fallback-detail').textContent=detail;element('loading').hidden=true;}
 
 // Let the loading view paint before generating the procedural world.
-requestAnimationFrame(()=>requestAnimationFrame(()=>{
+requestAnimationFrame(()=>requestAnimationFrame(async()=>{
+  await fontsReady();
   try{
     const game=new Game();
     if(import.meta.env.DEV){
       Object.defineProperty(window,'__smallville',{value:{snapshot:()=>game.snapshot(),navigationTo:(id:LocationId)=>game.navigate(id)},configurable:true});
     }
-  }catch(error){console.error('Smallville could not start:',error);showFallback(error instanceof Error?error.message:'The world could not be created. Please try again.');}
+  }catch(error){console.error('Smallville could not start:',error);showFallback(error instanceof Error?error.message:t('The world could not be created. Please try again.'));}
 }));

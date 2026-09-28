@@ -61,6 +61,10 @@ The pilot covers the meteor-shower opening, the Kent family, the missed bus and 
 
 The world and character models are generated in Three.js. Gameplay sound effects and ambience are synthesized with Web Audio. The opening screen and prologue use the supplied piano MP3 in `public/audio/opening-piano.mp3`; choose **Play opening music** to enable it. The shared sound control mutes it, and it stops when gameplay begins. The file streams on demand rather than blocking initial loading. The project does not embed episode footage, cast recordings, or a television soundtrack. The underlying Little Planet code is not a dependency.
 
+## Languages
+
+The game plays in English or Hebrew. A first visit follows the browser's language; the **עב / EN** button on the top bar and the **Language** setting switch it, saved with the other settings (the page reloads in the new language, at the last checkpoint). Hebrew is laid out right to left, uses Frank Ruhl Libre and Heebo, and names people and places the way the translated series does. Game controls, meters and the 3D world are not mirrored; signs in the world stay in English, like the show.
+
 ## Saves and replay
 
 Progress is stored under `smallville-journey-save-v1` in this browser's local storage. A save records the next objective, a safe checkpoint, discoveries, and completion status. Mid-conversation reloads restart that conversation. Mid-action reloads restart the action. Carrying Lex, restraint, story props, and actor placements are reconstructed from the completed objective prefix.
@@ -76,6 +80,7 @@ Browser storage belongs to the exact site address, including its port. The dedic
 - `src/world/`: original geometry factories, character rigs, static batching, instanced vegetation, and story-dependent visuals.
 - `src/main.ts`: game lifecycle and the connection between input, story, world, and UI.
 - `src/ui.ts` and `src/style.css`: accessible HTML controls, conversations, journal, settings, and responsive layout.
+- `src/i18n/`: the language setting, `t()`, and the Hebrew dictionary (keyed by the English text). The build (`postcss-rtlcss`) adds a mirrored twin of every direction-dependent CSS rule.
 - `e2e/`: real browser journey tests. Failure artifacts and review screenshots are written under `test-results/`.
 
 See [Adding an episode](docs/ADDING_EPISODES.md) for the content workflow and boundaries between data and new mechanics.

@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import type * as THREE from 'three';
 
 /** Three full turns, against the clock, before Jeremy reaches the sprinkler system. */
@@ -22,14 +23,14 @@ export class ValveChallenge {
   private nextQuarter = 0;
   private sealedFor = 0;
   constructor(private hooks: ValveHooks, private prop: THREE.Object3D | null) {
-    this.panel.id = 'valve'; this.panel.className = 'valve'; this.panel.setAttribute('role', 'group'); this.panel.setAttribute('aria-label', 'Sprinkler valve');
+    this.panel.id = 'valve'; this.panel.className = 'valve'; this.panel.setAttribute('role', 'group'); this.panel.setAttribute('aria-label', t('Sprinkler valve'));
     const spokes = [0, 1, 2, 3, 4, 5].map(i => `<line x1="100" y1="100" x2="${100 + Math.cos(i * Math.PI / 3) * 70}" y2="${100 + Math.sin(i * Math.PI / 3) * 70}"/>`).join('');
-    this.panel.innerHTML = `<p class="valve-eyebrow">JEREMY IS HEADING FOR THE SPRINKLERS</p><h2>Seal the valve</h2>
-      <p class="valve-hint">Turn the wheel three full times: drag around it, or press ↑ → ↓ ← in turn.</p>
+    this.panel.innerHTML = `<p class="valve-eyebrow">${t('JEREMY IS HEADING FOR THE SPRINKLERS')}</p><h2>${t('Seal the valve')}</h2>
+      <p class="valve-hint">${t('Turn the wheel three full times: drag around it, or press ↑ → ↓ ← in turn.')}</p>
       <svg class="valve-wheel" viewBox="0 0 200 200" aria-hidden="true"><circle class="valve-track" cx="100" cy="100" r="92"/><circle class="valve-progress" cx="100" cy="100" r="92" pathLength="100"/><g class="valve-spin"><circle class="valve-rim" cx="100" cy="100" r="72"/>${spokes}<circle class="valve-hub" cx="100" cy="100" r="14"/><circle class="valve-grip" cx="100" cy="28" r="9"/></g></svg>
       <div class="valve-readout"><strong id="valve-turns">0 / ${VALVE_TURNS}</strong><span id="valve-clock"></span></div>
       <div class="valve-time"><i id="valve-time"></i></div>
-      <p id="valve-message" role="status" aria-live="polite"></p><button id="valve-retry" type="button" hidden>Try again</button>`;
+      <p id="valve-message" role="status" aria-live="polite"></p><button id="valve-retry" type="button" hidden>${t('Try again')}</button>`;
     document.body.appendChild(this.panel);
     this.wheel = this.panel.querySelector('.valve-spin')!;
     const svg = this.panel.querySelector('svg')!;
@@ -63,13 +64,13 @@ export class ValveChallenge {
     const after = Math.floor(this.angle / (Math.PI / 2));
     this.nextQuarter = after % 4;
     if (after > before) this.hooks.cue('creak');
-    if (this.angle >= VALVE_TURNS * FULL) { this.angle = VALVE_TURNS * FULL; this.phase = 'sealed'; this.hooks.cue('sealed'); this.message('The valve is sealed. The dance floor stays dry.'); }
+    if (this.angle >= VALVE_TURNS * FULL) { this.angle = VALVE_TURNS * FULL; this.phase = 'sealed'; this.hooks.cue('sealed'); this.message(t('The valve is sealed. The dance floor stays dry.')); }
     this.paint();
   }
   update(dt: number) {
     if (this.phase === 'turning') {
       this.remaining = Math.max(0, this.remaining - dt);
-      if (this.remaining === 0) { this.phase = 'failed'; this.hooks.cue('caught'); this.message('Too slow. Jeremy reached the pipes first.'); (this.panel.querySelector('#valve-retry') as HTMLElement).hidden = false; }
+      if (this.remaining === 0) { this.phase = 'failed'; this.hooks.cue('caught'); this.message(t('Too slow. Jeremy reached the pipes first.')); (this.panel.querySelector('#valve-retry') as HTMLElement).hidden = false; }
     } else if (this.phase === 'sealed') {
       this.sealedFor += dt; if (this.sealedFor > .9) { this.dispose(); this.hooks.done(); return; }
     }

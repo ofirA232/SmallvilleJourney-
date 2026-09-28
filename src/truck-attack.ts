@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import type {Character} from './world/character';
 import * as THREE from 'three';
 import {at,basis,surfaceRadius,type CharacterController} from './core/sphere';
@@ -26,7 +27,7 @@ export class TruckAttack {
     for(const x of [-.38,.38])for(const z of [-.58,.02])part(x,.65,z,.025,.3,.025);
     const torso=jeremy.torso.clone(true);torso.children[jeremy.torso.children.indexOf(jeremy.head)]?.removeFromParent();torso.position.set(-.17,.47,-.3);torso.scale.setScalar(.55);torso.rotation.set(0,Math.PI,0);this.cab.add(torso);
     const head=jeremy.head.clone(true);head.position.set(-.17,.64,-.3);head.scale.setScalar(.55);head.rotation.set(0,Math.PI,0);this.cab.add(head);
-    this.panel.id='truck-attack';this.panel.innerHTML='<p class="truck-eyebrow">JEREMY IS COMING STRAIGHT AT YOU</p><h2 id="truck-message">Stand your ground.</h2><progress id="truck-time" max="3.5" value="3.5" aria-label="Time left to stop the truck"></progress><button id="truck-stop" type="button">E - Stop the truck</button><button id="truck-retry" type="button" hidden>Try again</button>';
+    this.panel.id='truck-attack';this.panel.innerHTML=`<p class="truck-eyebrow">${t('JEREMY IS COMING STRAIGHT AT YOU')}</p><h2 id="truck-message">${t('Stand your ground.')}</h2><progress id="truck-time" max="3.5" value="3.5" aria-label="${t('Time left to stop the truck')}"></progress><button id="truck-stop" type="button">${t('E - Stop the truck')}</button><button id="truck-retry" type="button" hidden>${t('Try again')}</button>`;
     document.body.appendChild(this.panel);
     this.panel.querySelector('#truck-stop')!.addEventListener('click',()=>this.stop());
     this.panel.querySelector('#truck-retry')!.addEventListener('click',()=>{if(this.active())this.restart();});
@@ -42,24 +43,24 @@ export class TruckAttack {
     this.player.forward.copy(basis(this.player.normal).north);
     this.panel.querySelector<HTMLButtonElement>('#truck-stop')!.hidden=false;
     this.panel.querySelector<HTMLButtonElement>('#truck-retry')!.hidden=true;
-    this.panel.querySelector('#truck-message')!.textContent='Stand your ground.';this.update(0);
+    this.panel.querySelector('#truck-message')!.textContent=t('Stand your ground.');this.update(0);
   }
   private stop(){
     if(!this.active()||this.phase!=='approach'||this.elapsed>=3.5)return;
     this.stopAt=this.elapsed;this.elapsed=0;this.phase='stopped';this.cue('screech');
-    this.panel.querySelector('#truck-message')!.textContent='You caught it. Hold the line.';
+    this.panel.querySelector('#truck-message')!.textContent=t('You caught it. Hold the line.');
     this.panel.querySelector<HTMLButtonElement>('#truck-stop')!.hidden=true;
   }
   update(dt:number){
     this.elapsed+=dt;
     if(this.phase==='approach'&&this.elapsed>=3.5){
-      this.phase='failed';this.panel.querySelector('#truck-message')!.textContent='Too late. Brace yourself and try again.';
+      this.phase='failed';this.panel.querySelector('#truck-message')!.textContent=t('Too late. Brace yourself and try again.');
       this.panel.querySelector<HTMLButtonElement>('#truck-stop')!.hidden=true;
       this.panel.querySelector<HTMLButtonElement>('#truck-retry')!.hidden=false;
     }
     const start=-4.4,end=1.85;
-    const t=this.phase==='stopped'?THREE.MathUtils.lerp(this.stopAt/3.5,1,1-Math.pow(1-Math.min(1,this.elapsed/.65),3)):Math.min(1,this.elapsed/3.5);
-    const n=at('school',[-4.5,THREE.MathUtils.lerp(start,end,t)]),{east,north}=basis(n);
+    const travelled=this.phase==='stopped'?THREE.MathUtils.lerp(this.stopAt/3.5,1,1-Math.pow(1-Math.min(1,this.elapsed/.65),3)):Math.min(1,this.elapsed/3.5);
+    const n=at('school',[-4.5,THREE.MathUtils.lerp(start,end,travelled)]),{east,north}=basis(n);
     this.truck.visible=true;this.truck.position.copy(n).multiplyScalar(surfaceRadius(n)+.04);
     this.truck.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(east,n,north.negate()));
     this.truck.children[0]?.rotation.set(this.phase==='stopped'?-.06*Math.sin(Math.min(1,this.elapsed/.65)*Math.PI):0,Math.PI,0);

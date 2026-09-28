@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import * as THREE from 'three';
 import { locations } from '../content/locations';
 import { at, basis, centers, distance, isLocked, isWater, nearestLocation, PLANET_RADIUS, surfaceRadius, terrainRadius, UP, WATER_RADIUS } from '../core/sphere';
@@ -245,10 +246,10 @@ export class World {
     box(wall,'#344e46',0,1.61,.05,2.02,.24,.19);
     plaque(wall,'WALL OF WEIRD',0,1.61,.16,1.94,.2);
     // The evidence, readable up close: the yearbook page and the meteor clipping.
-    clipping(wall,'CLASS OF 1993',['Freshman: Jeremy Creek','Homecoming scarecrow'],-.6,.85,.116,.42,.3,true);
-    clipping(wall,'METEORS HIT SMALLVILLE',['Oct. 1989, Riley Field','Boy found near impact'],.58,.85,.116,.42,.3,true,'#e2dcc8');
+    clipping(wall,t('CLASS OF 1993'),[t('Freshman: Jeremy Creek'),t('Homecoming scarecrow')],-.6,.85,.116,.42,.3,true);
+    clipping(wall,t('METEORS HIT SMALLVILLE'),[t('Oct. 1989, Riley Field'),t('Boy found near impact')],.58,.85,.116,.42,.3,true,'#e2dcc8');
     const table=this.anchor('school',[4.9,.3]);box(table,'#9e825b',0,.56,0,.68,.06,.42);for(const x of [-.25,.25])box(table,'#6c7052',x,.27,0,.035,.54,.28);box(table,'#e4d7b9',0,.6,0,.34,.014,.25);
-    clipping(table,'SMALLVILLE MEDICAL',['Patient: Creek, J.','Coma: 12 years','Missing after storm'],0,.609,0,.34,.25,false,'#eef0e6').rotation.x=-Math.PI/2;
+    clipping(table,t('SMALLVILLE MEDICAL'),[t('Patient: Creek, J.'),t('Coma: 12 years'),t('Missing after storm')],0,.609,0,.34,.25,false,'#eef0e6').rotation.x=-Math.PI/2;
     // The sprinkler valve; its wheel turns during the valve challenge.
     const valve=this.anchor('school',[-3.9,-1],0,true);box(valve,'#697c70',0,.37,0,.29,.72,.28);
     this.valveWheel.position.set(0,.62,.18);valve.add(this.valveWheel);this.valveWheel.add(new THREE.Mesh(new THREE.TorusGeometry(.16,.026,6,14),material('#b36445')));

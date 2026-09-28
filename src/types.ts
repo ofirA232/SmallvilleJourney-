@@ -1,3 +1,4 @@
+import type { Language } from './i18n';
 export type LocationId = 'farm' | 'school' | 'bridge' | 'mansion' | 'cemetery' | 'cornfield' | 'metropolis';
 export type ActorId = 'clark' | 'jonathan' | 'martha' | 'pete' | 'chloe' | 'lana' | 'lex' | 'whitney' | 'jeremy';
 export type Point = readonly [number, number];
@@ -103,7 +104,7 @@ export interface SaveGame {
   updatedAt: string;
   memories?: string[];
 }
-export interface Settings { sound: boolean; reducedMotion: boolean; quality: 'auto' | 'low' | 'high' }
+export interface Settings { sound: boolean; reducedMotion: boolean; quality: 'auto' | 'low' | 'high'; language: Language }
 export interface GameSnapshot {
   ready: boolean;
   mode: string;

@@ -1,3 +1,4 @@
+import { t } from './i18n';
 ﻿import {Vector3} from 'three';
 import {locations,locationById} from './content/locations';
 import {at,fromLatLon,isWater} from './core/sphere';
@@ -18,9 +19,9 @@ export class MiniMap {
   // Phones start with the map folded into a button so it never covers the play area uninvited.
   private collapsed=matchMedia('(max-width:700px),(pointer:coarse)').matches;
   constructor(go:()=>void){
-    this.panel.id='minimap';this.panel.hidden=true;this.panel.setAttribute('aria-label','Navigation map');
-    this.panel.innerHTML=`<button id="minimap-toggle" aria-controls="minimap-body" aria-label="Smallville map">${svg('map')}<span class="minimap-short" aria-hidden="true">MAP</span><span class="minimap-title">SMALLVILLE MAP</span><span class="minimap-state" aria-hidden="true"></span></button><div id="minimap-body"><div id="minimap-drawing"></div><div id="minimap-actions"><p id="minimap-caption"></p><button id="minimap-go">Go to objective →</button></div><small><i></i> You <b>◇</b> Objective <span>· North ↑</span></small></div>`;
-    this.canvas.width=WIDTH;this.canvas.height=HEIGHT;this.canvas.setAttribute('role','img');this.canvas.setAttribute('aria-label','World map: you are the white arrow; your objective is gold.');
+    this.panel.id='minimap';this.panel.hidden=true;this.panel.setAttribute('aria-label',t('Navigation map'));
+    this.panel.innerHTML=`<button id="minimap-toggle" aria-controls="minimap-body" aria-label="${t('Smallville map')}">${svg('map')}<span class="minimap-short" aria-hidden="true">${t('MAP')}</span><span class="minimap-title">${t('SMALLVILLE MAP')}</span><span class="minimap-state" aria-hidden="true"></span></button><div id="minimap-body"><div id="minimap-drawing"></div><div id="minimap-actions"><p id="minimap-caption"></p><button id="minimap-go">${t('Go to objective →')}</button></div><small><i></i> ${t('You')} <b>◇</b> ${t('Objective')} <span>· ${t('North ↑')}</span></small></div>`;
+    this.canvas.width=WIDTH;this.canvas.height=HEIGHT;this.canvas.setAttribute('role','img');this.canvas.setAttribute('aria-label',t('World map: you are the white arrow; your objective is gold.'));
     this.panel.querySelector('#minimap-drawing')!.appendChild(this.canvas);document.body.appendChild(this.panel);
     this.context=this.canvas.getContext('2d');this.base.width=WIDTH;this.base.height=HEIGHT;
     const ctx=this.base.getContext('2d');
@@ -42,17 +43,17 @@ export class MiniMap {
   }
   update(normal:Vector3,forward:Vector3,location:LocationId,quest:QuestDefinition|undefined,visible:boolean){
     this.panel.hidden=!visible;if(!visible)return;
-    const caption=this.panel.querySelector('#minimap-caption')!;caption.textContent=quest?`Next: ${locationById[quest.location].name}`:locationById[location].name;
+    const caption=this.panel.querySelector('#minimap-caption')!;caption.textContent=quest?t('Next: {place}',{place:t(locationById[quest.location].name)}):t(locationById[location].name);
     this.panel.querySelector<HTMLButtonElement>('#minimap-go')!.hidden=!quest;
     const p=mapPoint(normal);this.canvas.dataset.position=`${p.x.toFixed(2)},${p.y.toFixed(2)}`;
-    this.canvas.setAttribute('aria-label',`You: ${locationById[location].name}. ${quest?`Objective: ${locationById[quest.location].name}.`:'Explore Smallville.'} Metropolis is locked.`);
+    this.canvas.setAttribute('aria-label',`${t('You: {place}.',{place:t(locationById[location].name)})} ${quest?t('Objective: {place}.',{place:t(locationById[quest.location].name)}):t('Explore Smallville.')} ${t('Metropolis is locked.')}`);
     const ctx=this.context;if(!ctx||this.collapsed)return;
     ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(this.base,0,0);ctx.font='600 26px Inter,"Segoe UI",sans-serif';ctx.lineJoin='round';
     for(const place of locations){
       const point=mapPoint(at(place.id)),x=point.x*SCALE,y=point.y*SCALE,objective=quest?.location===place.id;
       ctx.fillStyle=place.locked?'#a4aaa0':objective?'#ffdb7d':'#deceb0';ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();
       // A dark halo keeps labels readable over both land and water.
-      const label=labels[place.id];ctx.textAlign=label.align;ctx.strokeStyle='#102a28e6';ctx.lineWidth=6;ctx.strokeText(label.text,x+label.dx,y+label.dy);ctx.fillText(label.text,x+label.dx,y+label.dy);
+      const label=labels[place.id];ctx.textAlign=label.align;ctx.strokeStyle='#102a28e6';ctx.lineWidth=6;const text=t(label.text);ctx.strokeText(text,x+label.dx,y+label.dy);ctx.fillText(text,x+label.dx,y+label.dy);
     }
     if(quest){const target=mapPoint(at(quest.location,quest.point)),x=target.x*SCALE,y=target.y*SCALE;ctx.strokeStyle='#ffdb7d';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,y-13);ctx.lineTo(x+13,y);ctx.lineTo(x,y+13);ctx.lineTo(x-13,y);ctx.closePath();ctx.stroke();}
     const ahead=mapPoint(normal.clone().addScaledVector(forward,.015).normalize());let dx=ahead.x-p.x;if(dx>120)dx-=240;if(dx< -120)dx+=240;

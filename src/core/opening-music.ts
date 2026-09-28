@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { MusicEnvelope } from './music-envelope';
 
 /** The supplied piano track opens with 2.7 s of silence and ends with 4.6 s more. Playback starts
@@ -58,5 +59,5 @@ export class OpeningMusic {
     };
     for(const type of ['pointerdown','keydown','touchstart'])window.addEventListener(type,retry,true);
   }
-  private render(){this.button.textContent=this.playing?'Pause opening music':'Play opening music';this.button.setAttribute('aria-pressed',String(this.playing));}
+  private render(){this.button.textContent=this.playing?t('Pause opening music'):t('Play opening music');this.button.setAttribute('aria-pressed',String(this.playing));}
 }

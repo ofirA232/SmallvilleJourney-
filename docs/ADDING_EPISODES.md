@@ -113,6 +113,12 @@ An optional `memories` array defines small discoveries with `{ id, location, poi
 
 Power encounters can also specify a story `prop` and a nonnegative `lift` in world units. Its temporary strain/lift preview is restored on cancellation; successful completion still applies the episode's normal world rules. This keeps previews out of the save state.
 
+## Translations
+
+English in the content is the source text. Every other language is a dictionary keyed by the English (`src/i18n/he.ts` for Hebrew), and `localizeEpisode` swaps in the translation of every player-facing field (titles, descriptions, actions, dialogue, captions, challenge text, memories) while leaving IDs, places and world rules alone. Interface code wraps its strings in `t()`, with `{name}` placeholders for anything inserted.
+
+When you add or change a line, add its Hebrew entry. `src/i18n/i18n.test.ts` fails on any text without a translation, on translations for text that no longer exists, and on a translation that drops a placeholder or line break. A line that is missing still plays, in English.
+
 ## Validation and new mechanics
 
 `validateEpisode` rejects broken quest IDs, world-rule ranges, positions, actors, abilities, prop transforms, durations, and dialogue references. It also rejects a mandatory strength objective when that power is unavailable. Keep IDs stable after release because saves store the completed objective prefix.

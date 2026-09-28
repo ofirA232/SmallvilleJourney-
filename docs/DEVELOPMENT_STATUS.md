@@ -176,6 +176,14 @@ Validation: 58 unit tests (including the fence save migration) and the productio
 - **The last dance is an embrace.** Clark and Lana dance close together; his hands rest at her waist and her arms go around his neck (`src/world/embrace.ts` lays the arm pose over the rigs after their animation each frame).
 - **The closing song plays out.** `everything.mp3` now opens at 2:20, with the family by the barn. The final track no longer fades when the episode completes: it plays to its last note behind the ending panel (without looping), and fades only when the player steps outside into Smallville.
 
+### September 28 - Hebrew
+
+- **Two languages.** The whole game plays in English or Hebrew: interface, prologue, objectives, every conversation and choice, film subtitles, challenges, the journal, the map, toasts and the Wall of Weird clippings. A first visit follows the browser's language; a language button on the top bar (next to sound and the globe) and a Language setting switch it. The choice is saved with the settings and the page reloads in the new language.
+- **Translated like the series.** Natural, subtitle-style Hebrew; people and places carry their Hebrew names (קלארק קנט, לאנה לאנג, סמולוויל, קיר המוזרויות). The player is spoken to as Clark, and the story's chapters are "מערכות" so they never read as episodes. Signs in the world (SMALLVILLE HIGH, KENT, DAILY PLANET) stay in English, as on screen.
+- **Right to left.** The page takes `dir="rtl"`, and the build mirrors every direction-dependent CSS rule (`postcss-rtlcss`). Arrows point the way the text reads. The joystick and action buttons, the strength meter and the labels placed in 3D keep their positions. The Wall of Weird clippings are laid out from the right. Hebrew uses Frank Ruhl Libre and Heebo, without letter spacing; the SMALLVILLE wordmark stays in its English serif.
+- **How it works.** `src/i18n` holds the language, `t()` and the Hebrew dictionary keyed by the English text. The episode is translated once at start-up (`localizeEpisode`), so the story code is unchanged. A unit test checks that every line has a translation (and no stale ones), with placeholders intact; `e2e/hebrew.spec.ts` covers switching, browser detection and a Hebrew conversation.
+- The opening story now hides the tool buttons, which sat under its Skip control in both languages.
+
 ### September 27 (late night) - Score for the middle of the pilot
 
 Five supplied tracks fill most of the stretch between the rescue and the return home that had no music.

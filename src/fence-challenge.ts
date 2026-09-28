@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import * as THREE from 'three';
 import { at, basis, distance, type CharacterController } from './core/sphere';
 import { FENCE_SITES } from './world/fence-repair';
@@ -36,7 +37,7 @@ export class FenceChallenge {
     this.cone = new THREE.Mesh(new THREE.CircleGeometry(5, 28, -Math.PI / 2 - Math.PI * .36, Math.PI * .72).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ff9a72', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
     this.cone.position.y = .06; this.cone.renderOrder = 3; jonathan.root.add(this.cone);
     this.panel.id = 'fence-status'; this.panel.className = 'race-status fence-status'; this.panel.setAttribute('role', 'status');
-    this.panel.innerHTML = '<span class="fence-eye" aria-hidden="true"></span><span id="fence-phase"></span><strong id="fence-count"></strong><span id="fence-strikes" aria-label="Strikes"></span>';
+    this.panel.innerHTML = `<span class="fence-eye" aria-hidden="true"></span><span id="fence-phase"></span><strong id="fence-count"></strong><span id="fence-strikes" aria-label="${t('Strikes')}"></span>`;
     document.body.appendChild(this.panel);
     world.fenceSections.forEach((section, index) => { world.setFenceSection(index, 0); section.marker.visible = true; });
     this.paint();
@@ -65,7 +66,7 @@ export class FenceChallenge {
   interact() {
     if (this.working || this.complete) return;
     const site = this.site;
-    if (site === null) { this.hooks.toast('Find a loose post', 'Walk to one of the gold markers along the fence.'); return; }
+    if (site === null) { this.hooks.toast(t('Find a loose post'), t('Walk to one of the gold markers along the fence.')); return; }
     if (this.phase === 'watching') { this.working = { site, elapsed: 0 }; this.hooks.cue('hammer'); return; }
     // One push at super speed: the post goes home in a blink and kicks up a ring of dust.
     this.driven[site] = .999; this.dust[site] = 0; this.repair(site); this.hooks.cue('slam');
@@ -107,8 +108,8 @@ export class FenceChallenge {
   }
   private strike() {
     this.caught = true; this.strikes++; this.hooks.cue('caught');
-    if (this.strikes < STRIKES) { this.hooks.toast('Jonathan', CAUGHT[this.strikes - 1]); return; }
-    this.hooks.toast('Jonathan', 'Clark. The right way, son. Pull those posts and start over.');
+    if (this.strikes < STRIKES) { this.hooks.toast(t('Jonathan'), t(CAUGHT[this.strikes - 1])); return; }
+    this.hooks.toast(t('Jonathan'), t('Clark. The right way, son. Pull those posts and start over.'));
     this.strikes = 0; this.working = null; this.fixed = this.fixed.map(() => false); this.driven = this.driven.map(() => 0); this.fixed.forEach((_, index) => this.world.setFenceSection(index, 0));
   }
   /** Faces Jonathan towards the house (back to the fence) or the fence. */
@@ -124,7 +125,7 @@ export class FenceChallenge {
   }
   private paint() {
     this.panel.dataset.phase = this.phase;
-    const phase = this.panel.querySelector('#fence-phase')!, text = this.complete ? 'EVERY POST IS IN' : this.phase === 'watching' ? 'DAD IS WATCHING · ACT NORMAL' : this.phase === 'warning' ? 'HE IS ABOUT TO TURN' : 'HIS BACK IS TURNED · GO';
+    const phase = this.panel.querySelector('#fence-phase')!, text = this.complete ? t('EVERY POST IS IN') : this.phase === 'watching' ? t('DAD IS WATCHING · ACT NORMAL') : this.phase === 'warning' ? t('HE IS ABOUT TO TURN') : t('HIS BACK IS TURNED · GO');
     if (phase.textContent !== text) phase.textContent = text;
     this.panel.querySelector('#fence-count')!.textContent = `${this.count}/${this.fixed.length}`;
     this.panel.querySelector('#fence-strikes')!.textContent = '●'.repeat(this.strikes) + '○'.repeat(STRIKES - this.strikes);
