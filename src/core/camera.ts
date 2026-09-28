@@ -4,6 +4,8 @@ import type { CharacterController } from './sphere';
 
 /** The usual draw distance. */
 const FAR = 220;
+/** How far (a share of the screen height) the walking view sits lower on a phone held upright. */
+const PORTRAIT_LIFT = .09;
 
 export class CameraRig {
   camera = new THREE.PerspectiveCamera(42, 1, 0.12, FAR);
@@ -19,6 +21,10 @@ export class CameraRig {
   /** On the title screen: the free part of the screen (px) the globe should fit into, beside or
    * above the text. Without it the globe fills the view. */
   landingFrame: { x0: number; y0: number; x1: number; y1: number } | null = null;
+  /** Set while the player walks freely. On a tall, narrow screen the view then sits a little lower,
+   * so the objective card along the top covers sky instead of the way ahead. */
+  lowered = false;
+  private lift = 0;
   width = 1440;
   height = 900;
   private first = true;
@@ -47,6 +53,8 @@ export class CameraRig {
     const normal=this.player.normal;
     this.back.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(this.previousNormal,normal));this.back.copy(tangent(this.back,normal));this.previousNormal.copy(normal);
     let position:THREE.Vector3,target:THREE.Vector3,up:THREE.Vector3;
+    const lift=this.lowered&&!landing&&this.view==='follow'&&this.width/this.height<.65?PORTRAIT_LIFT:0;
+    this.lift=this.first||reduced?lift:THREE.MathUtils.damp(this.lift,lift,3,dt);
     if(this.view==='globe'){
       const fov=Math.atan(Math.tan(21*Math.PI/180)*Math.min(1,this.width/this.height));
       const frame=landing?this.landingFrame:null;
@@ -74,7 +82,8 @@ export class CameraRig {
     }else if(landing){
       if(this.width>600)this.camera.setViewOffset(this.width,this.height,-this.width*.175,0,this.width,this.height);
       else this.camera.setViewOffset(this.width,this.height,0,this.height*.235,this.width,this.height);
-    }else this.camera.clearViewOffset();
+    }else if(this.lift>.001)this.camera.setViewOffset(this.width,this.height,0,-this.height*this.lift,this.width,this.height);
+    else this.camera.clearViewOffset();
     const amount=this.first||reduced?1:1-Math.exp(-dt*5.5);
     this.camera.position.lerp(position,amount);this.target.lerp(target,amount);this.camera.up.lerp(up,amount).normalize();this.camera.lookAt(this.target);this.camera.updateMatrixWorld();this.first=false;
   }

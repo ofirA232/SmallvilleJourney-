@@ -423,7 +423,11 @@ class Game {
     const quest=story.quest;
     const label=element('target-label');
     if(!quest||this.mode!=='playing'||ui.paused||this.nearby||this.fence){label.hidden=true;return;}
-    const normal=at(quest.location,quest.point);const screen=this.project(normal.clone().multiplyScalar(surfaceRadius(normal)+2.5));label.hidden=!screen.visible;label.style.transform=`translate(${screen.x}px,${screen.y}px) translate(-50%,-100%)`;label.querySelector('strong')!.textContent=quest.action;
+    const normal=at(quest.location,quest.point);const screen=this.project(normal.clone().multiplyScalar(surfaceRadius(normal)+2.5));label.hidden=!screen.visible;
+    // A label that would sit behind the objective card (the top of a phone screen) waits just below it.
+    const card=element('objective').getBoundingClientRect();
+    const y=card.height>0&&screen.x>card.left&&screen.x<card.right&&screen.y>card.top?Math.max(screen.y,card.bottom+8+label.offsetHeight):screen.y;
+    label.style.transform=`translate(${screen.x}px,${y}px) translate(-50%,-100%)`;label.querySelector('strong')!.textContent=quest.action;
   }
   snapshot():GameSnapshot{return{ready:this.ready,mode:this.mode,questId:story.quest?.id??null,questIndex:story.index,nearby:this.nearby,moving:this.player.moving,speed:Number(this.player.speed.toFixed(3)),superSpeed:this.player.superSpeed,swimming:this.player.swimming,weakened:this.player.weakened,height:Number(this.player.height.toFixed(3)),normal:this.player.normal.toArray(),routeActive:this.navigator.active,dialogueOpen:!!ui.dialogue,completed:story.complete,view:this.camera.view,location:this.currentLocation};}
   updateHud(){
@@ -494,7 +498,9 @@ class Game {
     if(story.restrained)this.world.markerDiamond.position.y=2.55;
     if(this.mode==='playing')this.world.facePlayer(this.player.normal,dt,this.fence?'jonathan':undefined);
     this.camera.landingFrame=this.landingFrame();
+    this.camera.lowered=this.mode==='playing'&&!this.cinematic&&!this.truckAttack&&!ui.dialogue;
     this.camera.update(dt,this.mode!=='playing',this.settings.reducedMotion,this.occluders);
+    if(this.cinematic)this.camera.camera.clearViewOffset();
     this.truckAttack?.camera(this.camera.camera);
     this.cinematic?.camera(this.camera.camera);
     // During the run to school the bus drives the road, arriving as the clock runs out.

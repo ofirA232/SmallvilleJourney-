@@ -183,6 +183,15 @@ Validation: 58 unit tests (including the fence save migration) and the productio
 - **Right to left.** The page takes `dir="rtl"`, and the build mirrors every direction-dependent CSS rule (`postcss-rtlcss`). Arrows point the way the text reads. The joystick and action buttons, the strength meter and the labels placed in 3D keep their positions. The Wall of Weird clippings are laid out from the right. Hebrew uses Frank Ruhl Libre and Heebo, without letter spacing; the SMALLVILLE wordmark stays in its English serif.
 - **How it works.** `src/i18n` holds the language, `t()` and the Hebrew dictionary keyed by the English text. The episode is translated once at start-up (`localizeEpisode`), so the story code is unchanged. A unit test checks that every line has a translation (and no stale ones), with placeholders intact; `e2e/hebrew.spec.ts` covers switching, browser detection and a Hebrew conversation.
 - The opening story now hides the tool buttons, which sat under its Skip control in both languages.
+- **The script, rewritten.** 36 lines were reworded after a read-through of the whole Hebrew script, and the bridge is גשר לאוב.
+
+### September 28 - Phones
+
+A screenshot audit on five phone sizes, upright and on their side, in both languages (no sideways scroll, no page errors) led to these fixes:
+
+- **Upright.** While walking, the view sits a little lower, so the objective card along the top covers sky instead of the character you are heading for. The "your next step" label waits just under the card instead of behind it. The place name sits clear of the card.
+- **On its side.** The strength challenge fits the height, with its hold button on screen. The evidence board sits beside the question. The valve is smaller. The folded MAP button sits beside the speed button, off the objective card. The place-name block is shorter and clear of the joystick and action buttons. The season pill is hidden, and toasts step aside during conversations.
+- Keyboard hints (E / Space) are hidden on touch screens.
 
 ### September 27 (late night) - Score for the middle of the pilot
 

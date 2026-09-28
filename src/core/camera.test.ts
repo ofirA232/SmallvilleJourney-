@@ -18,3 +18,14 @@ it('transports the follow camera around both poles without flipping or invalid m
     previous.copy(camera.camera.quaternion);
   }
 });
+
+it('lowers the walking view on an upright phone only',()=>{
+  const player=new CharacterController();player.reset(fromLatLon(20,0));
+  const camera=new CameraRig(player);camera.setView('follow');camera.snap();camera.lowered=true;
+  camera.resize(390,844);camera.update(1/60,false,true,[]);
+  expect(camera.camera.view?.enabled).toBe(true);expect(camera.camera.view!.offsetY).toBeLessThan(0);
+  camera.resize(844,390);camera.update(1/60,false,true,[]);
+  expect(camera.camera.view?.enabled??false).toBe(false);
+  camera.resize(390,844);camera.lowered=false;camera.update(1/60,false,true,[]);
+  expect(camera.camera.view?.enabled??false).toBe(false);
+});

@@ -112,3 +112,14 @@ body.low-graphics .icon-button,body.low-graphics .episode-pill,body.low-graphics
 
 /* The opening story has the top corner to itself for its skip control. */
 body:has(#prologue:not([hidden])) .tools{visibility:hidden}
+
+/* Phones: the place name sits right under its small heading, clear of the objective card. */
+@media(max-width:600px){.location-hud .eyebrow{display:block}}
+/* Phones on their side: a compact HUD that keeps clear of the thumbs, and a valve that fits the height. */
+@media(max-height:520px) and (orientation:landscape){
+  .episode-pill,.playing .bottom-bar,.location-hud p,.location-coordinate{display:none}
+  .location-hud{bottom:132px}
+  .talking .toast{visibility:hidden}
+  body:has(#minimap:not(.collapsed):not([hidden])) .objective{visibility:hidden}
+  .valve{padding:10px 16px 12px}.valve h2{font-size:20px;margin:2px 0 4px}.valve-hint{font-size:11px;margin-bottom:4px}.valve-wheel{width:min(150px,38dvh)}.valve-readout{margin:4px}#valve-message{margin-top:4px}
+}
