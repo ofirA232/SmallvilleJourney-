@@ -67,7 +67,8 @@ export class Input {
     window.addEventListener('blur',()=>this.clear());
     document.addEventListener('visibilitychange',()=>this.clear());
     canvas.addEventListener('pointerdown',event=>{
-      if(document.querySelector('dialog[open]')||callbacks.dialogue())return;
+      // Conversations keep the world live, so the camera can still be turned during them; menus do not.
+      if(document.querySelector('dialog[open]'))return;
       canvas.focus({preventScroll:true});canvas.setPointerCapture(event.pointerId);this.pointerMap.set(event.pointerId,{x:event.clientX,y:event.clientY});
       if(this.pointerMap.size===1)this.dragDistance=0;
       else {const values=[...this.pointerMap.values()];this.pinchDistance=Math.hypot(values[0].x-values[1].x,values[0].y-values[1].y);this.dragDistance=100;}
@@ -85,7 +86,7 @@ export class Input {
       this.pointerMap.delete(event.pointerId);canvas.classList.remove('dragging');
     });
     canvas.addEventListener('pointercancel',event=>{this.pointerMap.delete(event.pointerId);this.dragDistance=100;canvas.classList.remove('dragging');});
-    canvas.addEventListener('wheel',event=>{event.preventDefault();if(!document.querySelector('dialog[open]')&&!callbacks.dialogue())callbacks.zoom(Math.exp(Math.max(-100,Math.min(100,event.deltaY))*.0017));},{passive:false});
+    canvas.addEventListener('wheel',event=>{event.preventDefault();if(!document.querySelector('dialog[open]'))callbacks.zoom(Math.exp(Math.max(-100,Math.min(100,event.deltaY))*.0017));},{passive:false});
     canvas.addEventListener('contextmenu',event=>event.preventDefault());
     const joystick=element('joystick');
     const move=(event:PointerEvent)=>{const rect=joystick.getBoundingClientRect();const x=event.clientX-rect.left-rect.width/2,y=event.clientY-rect.top-rect.height/2;const factor=Math.min(1,30/(Math.hypot(x,y)||1));this.joystick.set(x*factor/30,-y*factor/30);element('joystick-knob').style.transform=`translate(${x*factor}px,${y*factor}px)`;};

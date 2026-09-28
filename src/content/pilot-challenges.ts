@@ -18,8 +18,7 @@ export const pilotChallenges:Record<string,ChallengeDefinition>={
     {prompt:'What does the evidence still leave unanswered?',choices:['Where Clark originally came from.','Whether Jonathan and Martha raised him.'],answer:0,explanation:'The Kents can tell Clark how they found him, but not where his journey began.'},
   ]},
   'feed-crate':{kind:'power',prop:'crate',lift:.55,title:'Strong enough. Gentle enough.',instruction:'Jonathan is watching. Lift the crate without splintering it, then set it down carefully.',beats:['Find your grip','Set it down gently'],speed:.48,zone:[.52,.78]},
-  'car-door':{kind:'power',prop:'car',lift:.12,title:'Someone is still in there.',instruction:'Brace against the car and peel back the damaged metal. Lex needs a way out.',beats:['Brace the frame','Break the seal','Make room for Lex'],speed:.58,zone:[.56,.84]},
-  sprinklers:{kind:'power',title:'Keep the dance floor dry.',instruction:'Jeremy needs the sprinkler system. Shut the valve without snapping the pipe.',beats:['Catch the wheel','Seal the valve'],speed:.58,zone:[.48,.74]},
+  'car-door':{kind:'power',prop:'car',lift:.12,title:'Someone is still in there.',instruction:'Grip the crumpled roof and tear it away. Lex needs a way out.',beats:['Grip the roof','Bend the frame','Tear it free'],speed:.58,zone:[.56,.84]},
   deduction:{kind:'evidence',title:'Something connects all of this.',cards:[
     {title:'The same face',date:'1989 YEARBOOK',text:'Jeremy Creek. A freshman chosen as the homecoming scarecrow. Chloe’s photograph today shows the same boy.'},
     {title:'An empty hospital bed',date:'2001 HOSPITAL REPORT',text:'Twelve years in a coma. A lightning storm. The backup generator fails, and Jeremy disappears.'},

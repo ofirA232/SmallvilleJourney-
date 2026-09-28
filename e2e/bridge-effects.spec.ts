@@ -16,20 +16,22 @@ async function reflection(page:Page){
   for(let i=0;i<6&&await page.locator('#dialogue').isVisible();i++){
     if(await page.locator('#finish-conversation').isVisible())await page.locator('#finish-conversation').click();else await page.locator('#dialogue-next').click();
   }
-  await expect(page.locator('#bridge-scene')).toBeVisible();
+  await expect(page.locator('#cutscene')).toBeVisible();
 }
 test('bridge impact, pause, splash and reload preserve the rescue',async({page},info)=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.clock.install();await load(page,'bridge-moment');await reflection(page);
-  await page.clock.runFor(2100);await page.screenshot({path:info.outputPath('impact.png')});
-  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.clock.runFor(5000);await expect(page.locator('#bridge-scene')).toBeVisible();
-  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.clock.runFor(2700);
-  await expect(page.locator('#bridge-scene')).toHaveCount(0);await expect.poll(async()=>(await state(page)).questId).toBe('car-door');
+  // One capture per shot: establishing, oncoming car, impact, splash.
+  for(const [time,name] of [[1200,'establishing'],[1800,'car'],[800,'impact']] as const){await page.clock.runFor(time);await page.screenshot({path:info.outputPath(`${name}.png`)});}
+  expect((await state(page)).cutscene).toMatchObject({id:'bridge-fall'});await expect(page.locator('#cutscene-caption')).toHaveText(/impact/);await expect(page.locator('#minimap')).toBeHidden();
+  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.clock.runFor(5000);await expect(page.locator('#cutscene')).toBeVisible();
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.clock.runFor(1300);await page.screenshot({path:info.outputPath('under.png')});await page.clock.runFor(2000);
+  await expect(page.locator('#cutscene')).toHaveCount(0);await expect.poll(async()=>(await state(page)).questId).toBe('car-door');
   expect((await state(page)).swimming).toBe(true);await page.screenshot({path:info.outputPath('splash.png')});
-  await page.clock.resume();await start(page);expect((await state(page)).questId).toBe('car-door');await expect(page.locator('#bridge-scene')).toHaveCount(0);expect(errors).toEqual([]);
+  await page.clock.resume();await start(page);expect((await state(page)).questId).toBe('car-door');await expect(page.locator('#cutscene')).toHaveCount(0);expect(errors).toEqual([]);
 });
 test('interrupted bridge can replay and skip exactly once',async({page})=>{
   await page.clock.install();await load(page,'bridge-moment');await reflection(page);await page.clock.resume();await start(page);
-  expect((await state(page)).questId).toBe('bridge-moment');await reflection(page);await page.locator('#skip-bridge').click();await page.clock.runFor(200);
+  expect((await state(page)).questId).toBe('bridge-moment');await reflection(page);await page.locator('#skip-cutscene').click();await page.clock.runFor(200);
   expect((await state(page)).questId).toBe('car-door');
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('smallville-journey-save-v1')!).completedQuestIds.filter((id:string)=>id==='bridge-moment').length)).toBe(1);
 });

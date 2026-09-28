@@ -29,14 +29,14 @@ test('Lex: imported rescue model survives reload and becomes the riverbank NPC',
   await arrive(page);await page.locator('#interact-button').click();
   await expect.poll(async()=>(await state(page)).questId,{timeout:30000}).toBe('lex-thanks');
   await expect.poll(async()=>(await state(page)).carriedActor).toBeNull();
-  await expect.poll(async()=>(await state(page)).actors.lex).toEqual({model:'ready',visible:true,necklace:false});
+  await expect.poll(async()=>(await state(page)).actors.lex).toMatchObject({model:'ready',visible:true,necklace:false});
   await arrive(page);await page.screenshot({path:info.outputPath('lex-bank.png'),scale:'css'});
   await page.locator('#interact-button').click();await finish(page);
   await expect.poll(async()=>(await state(page)).questId).toBe('family-truth');expect(errors).toEqual([]);
 });
 for(const quest of ['mansion','call-for-help'])test(`Lex: imported actor participates in ${quest}`,async({page},info)=>{
   await seed(page,quest);await open(page);
-  await expect.poll(async()=>(await state(page)).actors.lex).toEqual({model:'ready',visible:quest!=='call-for-help',necklace:false});
+  await expect.poll(async()=>(await state(page)).actors.lex).toMatchObject({model:'ready',visible:quest!=='call-for-help',necklace:false});
   if(quest==='mansion')await arrive(page);else await expect.poll(async()=>(await state(page)).nearby).toBe(true);
   await page.screenshot({path:info.outputPath(`${quest}.png`),scale:'css'});
   const index=(await state(page)).questIndex;await page.locator('#interact-button').click();await finish(page);
@@ -44,7 +44,7 @@ for(const quest of ['mansion','call-for-help'])test(`Lex: imported actor partici
 });
 test('Lex: failed asset keeps the playable NPC fallback',async({page})=>{
   await page.route('**/models/lex/lex-rigged.glb',route=>route.abort());await seed(page,'mansion');await open(page);
-  await expect.poll(async()=>(await state(page)).actors.lex).toEqual({model:'fallback',visible:true,necklace:false});
+  await expect.poll(async()=>(await state(page)).actors.lex).toMatchObject({model:'fallback',visible:true,necklace:false});
   await arrive(page);await page.locator('#interact-button').click();await finish(page);
   await expect.poll(async()=>(await state(page)).questId).toBe('wall');
 });

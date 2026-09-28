@@ -71,6 +71,23 @@ export function plaque(parent:THREE.Object3D,text:string,x:number,y:number,z:num
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
   const label=new THREE.Mesh(new THREE.PlaneGeometry(width,height),new THREE.MeshBasicMaterial({map:texture}));label.position.z=.022;root.add(label);return root;
 }
+/** A printed page: a bold headline, a few lines of text and, optionally, a photograph of someone.
+ * It is a dynamic group, like plaque(), so scenery batching keeps its texture. */
+export function clipping(parent:THREE.Object3D,title:string,lines:string[],x:number,y:number,z:number,width:number,height:number,photo=false,paper='#ece2c4'){
+  const root=group(parent,x,y,z,true);
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(width,height),new THREE.MeshBasicMaterial({color:paper}));root.add(mesh);
+  if(typeof document==='undefined')return root;
+  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=Math.round(512*height/width);
+  const context=canvas.getContext('2d');if(!context)return root;
+  context.fillStyle=paper;context.fillRect(0,0,canvas.width,canvas.height);context.fillStyle='#2a2620';context.textBaseline='top';
+  context.font='700 44px Georgia';context.fillText(title,24,20,canvas.width-48);
+  let text=24;
+  if(photo){context.fillStyle='#8f887a';context.fillRect(24,84,150,170);context.fillStyle='#4d463d';context.beginPath();context.arc(99,150,34,0,Math.PI*2);context.fill();context.fillRect(49,196,100,58);text=196;}
+  context.fillStyle='#3b362e';context.font='26px Georgia';lines.forEach((line,index)=>context.fillText(line,text,86+index*36,canvas.width-text-24));
+  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+  const mat=mesh.material as THREE.MeshBasicMaterial;mat.map=texture;mat.color.set('#ffffff');
+  return root;
+}
 export function gambrelRoof(parent:THREE.Object3D,width:number,depth:number,height:number,y:number){
   const profile=[[-width/2,0],[-width*.33,height*.73],[0,height],[width*.33,height*.73],[width/2,0]];
   for(let i=0;i<profile.length-1;i++){
@@ -84,20 +101,6 @@ export function gambrelRoof(parent:THREE.Object3D,width:number,depth:number,heig
     const outline=new THREE.Shape();outline.moveTo(profile[0][0],y);for(const [x,h] of profile.slice(1))outline.lineTo(x,y+h);outline.closePath();
     const face=new THREE.Mesh(new THREE.ShapeGeometry(outline),material('#a74439'));face.position.z=z;face.material.side=THREE.DoubleSide;parent.add(face);
   }
-}
-export function car(parent: THREE.Object3D, color: string, truck = false) {
-  const root = group(parent, 0, 0, 0, true);
-  box(root, color, 0, 0.33, 0, 0.9, 0.27, 1.6);
-  box(root, color, 0, 0.61, truck ? -0.28 : 0, 0.81, 0.32, truck ? 0.64 : 0.85);
-  box(root, '#aac4bd', 0, 0.65, -0.45, 0.68, 0.23, 0.03);
-  box(root, '#344f52', 0, 0.64, truck ? 0.05 : 0.46, 0.67, 0.22, 0.025);
-  if (truck) box(root, '#686c60', 0, 0.47, 0.51, 0.75, 0.025, 0.63);
-  for (const x of [-0.47, 0.47]) for (const z of [-0.48, 0.5]) {
-    const wheel = cylinder(root, '#35423b', x, 0.2, z, 0.2, 0.1); wheel.rotation.z = Math.PI / 2;
-    const hub = cylinder(root, '#a7aca2', x * 1.02, 0.2, z, 0.085, 0.105); hub.rotation.z = Math.PI / 2;
-  }
-  for (const x of [-0.28, 0.28]) box(root, '#eee3b3', x, 0.38, -0.81, 0.17, 0.13, 0.03);
-  return root;
 }
 
 /** Bake a material's flat colour into a vertex colour attribute so meshes of many colours share one draw call. */

@@ -26,9 +26,19 @@
 @media(max-width:600px){#journal-button{display:grid}}
 /* Stable, non-flashing feedback; input always passes through to the game. */
 #kryptonite-haze { position:fixed; inset:0; pointer-events:none; z-index:4; background:radial-gradient(ellipse at 50% 62%,transparent 20%,#67db25 100%); opacity:var(--kryptonite-exposure,0); }
-#bridge-scene { position:fixed; z-index:45; left:50%; bottom:18%; transform:translateX(-50%); width:min(90vw,550px); padding:18px 24px; text-align:center; color:#f1e6cb; background:#173c36ed; border:1px solid #cbb880; border-radius:12px; }
-#bridge-scene p { margin:0 0 12px; font-size:17px; }
-#bridge-scene button { padding:8px 18px; color:#efe1bd; background:#36534a; border:1px solid #9d9977; border-radius:6px; cursor:pointer; }
+/* Cutscenes: letterbox bars over the live world. Captions sit above the host badge; the skip control lives in the top bar. */
+.cutscene{position:fixed;inset:0;z-index:45;pointer-events:none}
+.letterbox{position:absolute;left:0;right:0;background:#040d0f;pointer-events:auto;animation:letterbox-in .55s cubic-bezier(.2,.7,.2,1) both}
+.letterbox-top{top:0;height:max(11vh,64px);transform-origin:top;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 max(24px,env(safe-area-inset-right)) 12px}
+.letterbox-bottom{bottom:0;height:max(15vh,calc(var(--badge-clear) + 74px));transform-origin:bottom;display:flex;align-items:flex-end;justify-content:center;padding:0 24px calc(var(--badge-clear) + 4px)}
+@keyframes letterbox-in{from{transform:scaleY(0)}}
+#cutscene-caption{margin:0;max-width:min(640px,100%);text-align:center;font:italic 400 clamp(15px,2.1vw,20px)/1.45 Georgia,serif;color:#f1e8cc;text-shadow:0 2px 12px #000}
+#skip-cutscene{min-height:44px;padding:0 16px;border:1px solid #d9d7aa40;border-radius:22px;background:#ffffff0d;color:#d8d3ac;font-size:12px;letter-spacing:.08em}
+#skip-cutscene:hover,#skip-cutscene:focus-visible{background:#ffffff1f;color:#f3e3b0;outline:none}
+.cutscene-flash{position:absolute;inset:0;background:#fffbe9;opacity:0}
+.cutscene-flash.flashing{animation:cutscene-flash .45s ease-out}
+@keyframes cutscene-flash{from{opacity:.75}to{opacity:0}}
+.cinematic .topbar,.cinematic .objective,.cinematic .location-hud,.cinematic .chapter-hud,.cinematic .touch-controls,.cinematic .bottom-bar,.cinematic #minimap,.cinematic .target-label,.cinematic .interaction-area,.cinematic .note-prompt,.cinematic .route-status,.cinematic .race-status,.cinematic .weakness,.cinematic .toast{visibility:hidden}
 #field-rescue { position:fixed; z-index:45; left:50%; bottom:22%; transform:translateX(-50%); width:min(88vw,520px); padding:20px; border:1px solid #b9ad7a; border-radius:12px; background:#173c36ee; color:#f1e6cb; text-align:center; font-size:18px; }
 #truck-attack{position:fixed;z-index:25;bottom:max(var(--badge-clear),env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(420px,calc(100% - 32px));padding:18px 22px;background:rgba(16,34,29,.94);border:1px solid #a9bd8b;border-radius:12px;text-align:center;color:#f1efcd;box-sizing:border-box}
 #truck-attack h2{font-size:22px;margin:8px 0 14px}.truck-eyebrow{font-size:10px;letter-spacing:2px;margin:0;color:#c8d9ac}
@@ -39,3 +49,57 @@
 body:has(#truck-attack) #objective,body:has(#truck-attack) #location-hud,body:has(#truck-attack) #desktop-controls{visibility:hidden}
 /* Avoid repeated backdrop sampling on slower GPUs while the world is moving. */
 body.low-graphics .icon-button,body.low-graphics .episode-pill,body.low-graphics #desktop-controls,body.low-graphics .target-label,body.low-graphics .objective-card,body.low-graphics .toast,body.low-graphics .touch-actions button{backdrop-filter:none}
+/* Fence mission status: green while Jonathan's back is turned, amber before he looks, red while he watches. */
+.fence-status{gap:10px;font-size:10px;letter-spacing:.08em;transition:background .2s,border-color .2s,color .2s}
+.fence-status strong{font:400 17px Georgia,serif;letter-spacing:0}
+.fence-status .fence-eye{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+.fence-status[data-phase="turned"]{background:#27442ee8;border-color:#9fcf8a80;color:#def0c6}
+.fence-status[data-phase="warning"]{background:#4d4226ee;border-color:#e8c26e;color:#ffe3a1}
+.fence-status[data-phase="watching"]{background:#50302aee;border-color:#e0876e;color:#ffd8ca}
+#fence-strikes{letter-spacing:.25em;font-size:11px}
+
+/* Entering the loft: a short fade from black hides the move into the interior. */
+.loft-fade{position:fixed;inset:0;z-index:44;background:#050302;pointer-events:none;animation:loft-fade 1.4s ease-out forwards}
+@keyframes loft-fade{from{opacity:1}to{opacity:0}}
+
+/* Objective card: on phones and tablets it folds down to its title. */
+.objective-toggle{display:none;margin-left:10px;width:30px;height:30px;border-radius:50%;border:1px solid #d9dfbe40;background:transparent;color:#e3d7a8;font-size:16px;line-height:1;place-items:center}
+@media(max-width:700px),(pointer:coarse){.objective-toggle{display:grid}.objective-heading{align-items:center}.objective.collapsed{padding-bottom:10px}.objective.collapsed #objective-description,.objective.collapsed .objective-bottom,.objective.collapsed .objective-progress{display:none}.objective.collapsed h3{margin-bottom:0}}
+@media(max-width:700px),(pointer:coarse){.objective-heading #objective-count{margin-left:auto}}
+
+/* Sprinkler valve: a wheel to spin three times against the clock. */
+.valve{position:fixed;z-index:40;left:50%;top:50%;transform:translate(-50%,-50%);width:min(360px,calc(100vw - 32px));padding:18px 20px 16px;border:1px solid #cdb97c;border-radius:14px;background:#122a28f2;color:#f1e8cc;text-align:center;box-shadow:0 20px 60px #0009}
+.valve h2{margin:4px 0 6px;font:400 24px Georgia,serif}
+.valve-eyebrow{margin:0;font-size:10px;letter-spacing:.14em;color:#e7c98d}
+.valve-hint{margin:0 0 8px;font-size:12px;color:#c8d3bd;line-height:1.5}
+.valve-wheel{width:min(220px,60vw);height:auto;touch-action:none;cursor:grab;user-select:none}
+.valve-wheel:active{cursor:grabbing}
+.valve-track{fill:none;stroke:#ffffff1a;stroke-width:8}
+.valve-progress{fill:none;stroke:#ffd27a;stroke-width:8;stroke-linecap:round;stroke-dasharray:0 100;transform:rotate(-90deg);transform-origin:100px 100px}
+.valve-rim{fill:none;stroke:#c24a3a;stroke-width:12}
+.valve-spin line{stroke:#c24a3a;stroke-width:8;stroke-linecap:round}
+.valve-hub{fill:#8a2f25}.valve-grip{fill:#e9d49c}
+.valve-readout{display:flex;justify-content:space-between;align-items:baseline;margin:8px 4px 6px;font-size:13px;color:#d8dcc6}
+.valve-readout strong{font:400 22px Georgia,serif;color:#ffe0a0}
+.valve-time{height:4px;border-radius:2px;background:#ffffff1f;overflow:hidden}.valve-time i{display:block;height:100%;background:#e0876e}
+.valve[data-phase="sealed"]{border-color:#9fcf8a}
+#valve-message{min-height:18px;margin:8px 0 0;font-size:13px}
+#valve-retry{margin-top:8px;min-height:44px;padding:0 20px;border-radius:22px;border:1px solid #cdb97c;background:#2b4a3c;color:#f1e8cc}
+.cinematic .valve{visibility:hidden}
+
+/* Title screen on short screens: keep every line clear of the next. */
+@media(min-width:601px) and (max-height:820px){body:not(.playing) .bottom-caption{visibility:hidden}}
+@media(max-height:520px) and (orientation:landscape){
+  .landing{top:74px}.landing-eyebrow,.landing-copy,.landing-meta{display:none}
+  .landing h1{font-size:25px;margin:0 0 10px;white-space:nowrap}.landing h1 br{display:none}
+  .landing-episode{padding:6px 0 8px}.landing-episode h2{font-size:17px;margin:3px 0}.episode-number{font-size:24px}
+  .landing .primary-button{min-height:38px;padding:8px 15px}
+  body:not(.playing) .bottom-bar{display:none}
+}
+
+/* The goodnight film: the conversation card steps aside while it plays. */
+.dialogue{transition:opacity .25s}body.goodnight-cut .dialogue{opacity:0;pointer-events:none}
+
+/* The series title over the stars at the very end. */
+.series-logo{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);width:min(460px,72vw);height:auto;z-index:46;opacity:0;pointer-events:none;transition:opacity 2.2s ease;filter:drop-shadow(0 0 18px rgba(190,215,255,.28))}
+.series-logo.shown{opacity:1}

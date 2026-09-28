@@ -9,6 +9,8 @@ test('investigation: wrong connections cannot complete the objective',async({pag
   await page.addInitScript(({key,save})=>localStorage.setItem(key,save),{key:SAVE_KEY,save:JSON.stringify(story.snapshot())});
   await page.goto('/?quality=low');await page.locator('#loading').waitFor({state:'hidden',timeout:60_000});await page.locator('#begin-button').click();
   await page.locator('#track-button').click();await expect(page.locator('#interact-button')).toBeVisible();await page.locator('#interact-button').click();
+  // The Wall of Weird scene comes first; it can be skipped.
+  await expect(page.locator('#cutscene')).toHaveAttribute('data-scene','wall-discovery');await page.locator('#skip-cutscene').click();
   await expect(page.locator('#encounter')).toBeVisible();await expect(page.locator('.evidence-card')).toHaveCount(3);
   await page.getByRole('button',{name:'He is a new student with the same name.',exact:false}).click();
   await expect(page.locator('#encounter-feedback')).toHaveAttribute('data-kind','miss');await expect(page.locator('#encounter-finish')).toBeHidden();

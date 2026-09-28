@@ -19,6 +19,13 @@ const conversations: DialogueDefinition[] = [
     line('martha', 'Your dad means: be careful. I mean: remember to have a little fun.'),
     line('jonathan', 'Help me move that feed crate out of the path before you go. Gently, son.'),
   ], [{ label: 'Why do I have to be so careful?', lines: [line('clark', 'What if I could use what I can do to help people?'), line('jonathan', 'Then you should. Just remember that you are responsible for what happens afterward, too.')] }]),
+  dialogue('fence-done', [
+    line('jonathan', 'Those posts were lying in the grass ten minutes ago.'),
+    line('clark', 'You said the fence could wait. I just did not make it wait very long.'),
+    line('jonathan', 'And nobody saw you?'),
+    line('clark', 'Not even you.'),
+    line('martha', 'Clark! That was the bus!'),
+  ]),
   dialogue('friends', [
     line('pete', 'There he is. I was about to tell everyone you took the scenic route through Nebraska.'),
     line('clark', 'You would be surprised how quickly a person can get here.'),
@@ -65,12 +72,8 @@ const conversations: DialogueDefinition[] = [
     line('lana', 'People tell me what my parents were like. Sometimes I wish I had just one more memory of my own.'),
     line('clark', 'I found out something about my family. Now I do not know where I fit.'),
     line('lana', 'Maybe fitting somewhere is not something you find all at once.'),
+    // The question itself, and her answer, play as a scene (PromScene).
     line('narrator', 'For a little while, the quiet is shared. Then Clark finds the question he has been carrying around all day.'),
-    line('clark', 'The spring formal is tonight. I keep thinking I should have asked you to go with me.'),
-    line('lana', 'Clark… I am going with Whitney. I said yes to him last week.'),
-    line('clark', 'Right. Of course you are. Forget I said anything.'),
-    line('lana', 'Do not do that. Come anyway—and if you do, I promise I will save you the last dance.'),
-    line('narrator', 'She says it like it is already settled. Clark walks home with it turning over in his head.'),
   ], [{ label: 'Ask about the necklace', lines: [line('lana', 'I gave it to Whitney for the game. He says it is good luck.'), line('narrator', 'Without the green stone between them, Clark notices how easy it is to stand beside her.')] }]),
   dialogue('mansion', [
     line('lex', 'Clark. I thought a truck might be a better thank-you than a card.'),
@@ -139,7 +142,7 @@ const conversations: DialogueDefinition[] = [
     line('clark', 'Whatever happens next, it ends out here.'),
   ]),
   dialogue('jeremy-saved', [
-    line('narrator', 'Water pours out of the damaged truck. The electrical glow is gone. Clark pulls the door free and helps Jeremy out.'),
+    line('narrator', 'Water pours from the broken main. The electric glow is gone from Jeremy’s eyes.'),
     line('jeremy', 'Where am I? What happened?'),
     line('clark', 'You are in Smallville. You are safe now.'),
     line('jeremy', 'I just want to go home.'),
@@ -156,25 +159,27 @@ const conversations: DialogueDefinition[] = [
   dialogue('loft', [
     line('narrator', 'Up in the loft, the telescope points beyond the fields. Somewhere across town, the dance is ending.'),
     line('clark', 'Maybe one day I will know how to tell her everything.'),
-    line('narrator', 'A sound on the boards below. Lana is standing in the barn in the dress from the formal, one hand held out.'),
+    line('narrator', 'A sound on the stairs. Lana is standing at the top of the loft steps in the dress from the formal, one hand held out.'),
     line('lana', 'You came after all. I told you I was saving you the last dance.'),
-    line('narrator', 'There is no music down there, and it does not matter. They turn slowly in the lamplight, and for once nothing about Clark is strange.'),
-    line('clark', 'I could stay right here.'),
-    line('narrator', 'Then the wind moves through the corn, and the barn below him is empty. It was only ever a daydream.'),
-    line('narrator', 'Clark leans back into the telescope. Far down the road Lana is walking home—and she stops, and looks back toward the farm.'),
+  ]),
+  // Plays after the last dance in the loft (LoftScene).
+  dialogue('loft-after', [
+    line('narrator', 'Then the wind moves through the corn, and the loft is empty. It was only ever a daydream.'),
+    line('narrator', 'Clark leans back into the telescope. Across town, Lana climbs the steps to her aunt Nell’s porch.'),
     line('clark', 'Goodnight, Lana.'),
-    line('narrator', 'He lifts his eyes past the weathervane, past the fields, to the stars he fell from.'),
-    line('narrator', 'The world is a little less ordinary than it was this morning. The boy looking up at it is still Clark Kent—for now. Every legend starts somewhere. This one starts here.'),
+    line('narrator', 'The world is a little less ordinary than it was this morning. The boy at the window is still Clark Kent—for now.'),
+    // The last look up to the stars plays as a scene (LoftScene.stars).
   ]),
 ];
 
 const quests: QuestDefinition[] = [
   { id: 'morning', chapter: 0, title: 'A place to call home', description: 'Find Jonathan outside the barn. Even extraordinary days begin with chores.', location: 'farm', point: [0, 1.7], checkpoint: [0, 3.4], action: 'Talk to Jonathan', kind: 'talk', actor: 'jonathan', dialogue: 'morning' },
-  { id: 'feed-crate', completionToast: { title:'A gentle touch', text:'Crate moved. The first bell is waiting.' }, chapter: 0, title: 'A gentle touch', description: 'Move the feed crate with your strength. Some things are easier when you remember to be careful.', location: 'farm', point: [1.7, 1.6], action: 'Move the feed crate', kind: 'strength', holdSeconds: 1.5 },
+  { id: 'feed-crate', completionToast: { title:'A gentle touch', text:'Crate moved. Now, about that fence…' }, chapter: 0, title: 'A gentle touch', description: 'Move the feed crate with your strength. Some things are easier when you remember to be careful.', location: 'farm', point: [1.7, 1.6], action: 'Move the feed crate', kind: 'strength', holdSeconds: 1.5 },
+  { id: 'fence', chapter: 0, title: 'Faster than Dad can see', description: 'Four new fence posts need driving in. Push them into the ground at super speed while Jonathan’s back is turned. When he looks, hammer them in like anyone else.', location: 'farm', point: [.3, 2.4], radius: 1.3, action: 'Start on the fence posts', kind: 'stealth', dialogue: 'fence-done' },
   { id: 'friends', chapter: 0, title: 'The first bell', description: 'You missed the bus. Beat it to school through the fields. Hold Shift or SPEED, then meet Pete and Chloe.', location: 'school', point: [-1.5, 1.5], checkpointLocation:'farm', checkpoint:[0,3.4], action: 'Meet your friends', kind: 'race', timeLimit:60, timerLabel:'BEAT THE SCHOOL BUS', actor: 'pete', dialogue: 'friends' },
   { id: 'lana', chapter: 0, title: 'A little green stone', description: 'Say hello to Lana near the school steps.', location: 'school', point: [1.8, 1.3], action: 'Talk to Lana', kind: 'talk', actor: 'lana', dialogue: 'lana-school', radius: 2.1 },
   { id: 'bridge-moment', chapter: 1, title: 'A moment above the river', description: 'Walk onto Loeb Bridge and take a moment to think.', location: 'bridge', point: [0, 0], checkpoint: [-3.4, 1.6], action: 'Look out over the river', kind: 'talk', dialogue: 'bridge-thoughts', radius: 1.2 },
-  { id: 'car-door', completionToast: { title:'You have him', text:'Bring Lex to the marked riverbank.' }, chapter: 1, title: 'A second changes everything', description: 'The car struck you and plunged into the river. Reach it and free the driver.', location: 'bridge', point: [0, -1.7], checkpoint: [-3.4, 1.6], action: 'Dive & open the car', kind: 'rescue', holdSeconds: 1.7, radius: 1.15, arrivalText: 'Someone is trapped inside. Get into the water.' },
+  { id: 'car-door', completionToast: { title:'You have him', text:'Bring Lex to the marked riverbank.' }, chapter: 1, title: 'A second changes everything', description: 'The Porsche struck you and plunged into the river. Reach it and tear it open to free the driver.', location: 'bridge', point: [0, -1.7], checkpoint: [-3.4, 1.6], action: 'Dive & tear off the roof', kind: 'rescue', holdSeconds: 1.7, radius: 1.15, arrivalText: 'Someone is trapped inside. Get into the water.' },
   { id: 'bring-lex-ashore', chapter: 1, title: 'Back to the surface', description: 'You have Lex. Carry him to the marked riverbank.', location: 'bridge', point: [3, 1.5], checkpoint: [0, -1.5], action: 'Help Lex onto the bank', kind: 'rescue', holdSeconds: 1.3, radius: 1.3 },
   { id: 'lex-thanks', chapter: 1, title: 'An unlikely beginning', description: 'Make sure Lex is all right.', location: 'bridge', point: [3, 1.5], action: 'Talk to Lex', kind: 'talk', actor: 'lex', dialogue: 'lex-rescue' },
   { id: 'family-truth', chapter: 2, title: 'The answers at home', description: 'Return to Jonathan. You need to understand how you survived the bridge.', location: 'farm', point: [0, 1.7], action: 'Ask Jonathan for the truth', kind: 'talk', actor: 'jonathan', dialogue: 'truth' },
@@ -190,9 +195,9 @@ const quests: QuestDefinition[] = [
   { id: 'jeremy-field', enterAt: { location:'cornfield', point:[0,.5] }, chapter: 4, title: 'History repeats', description: 'The necklace has taken your strength. Talk to Jeremy from the scarecrow post.', location: 'cornfield', point: [0, 0.8], checkpoint: [0, 0.5], action: 'Talk to Jeremy', kind: 'talk', actor: 'jeremy', dialogue: 'jeremy-field', radius: 2.5 },
   { id: 'call-for-help', chapter: 4, title: 'A friend in the dark', description: 'A car is passing the field. Call out to Lex.', location: 'cornfield', point: [0, 0.8], checkpoint: [0, 0.5], action: 'Call for help', kind: 'talk', actor: 'lex', dialogue: 'lex-field', radius: 2.5 },
   { id: 'race', enterAt: { location:'cornfield', point:[0,2.4] }, chapter: 5, title: 'Before the music stops', description: 'Reach Jeremy outside the school gym. Use your speed—the dance is about to begin.', location: 'school', point: [-3.9, 0.5], checkpointLocation: 'cornfield', checkpoint: [0, 2.4], action: 'Stop Jeremy', kind: 'race', timeLimit: 55, actor: 'jeremy', dialogue: 'jeremy-school', radius: 2.3 },
-  { id: 'sprinklers', chapter: 5, title: 'Keep them safe', description: 'Force the sprinkler valve shut before Jeremy reaches it.', location: 'school', point: [-3.9, -1], checkpoint: [-3.7, 2.8], action: 'Seal the sprinkler valve', kind: 'strength', holdSeconds: 1.8, radius: 1.5 },
+  { id: 'sprinklers', chapter: 5, title: 'Keep them safe', description: 'Force the sprinkler valve shut before Jeremy reaches it: three full turns of the wheel, against the clock.', location: 'school', point: [-3.9, -1], checkpoint: [-3.7, 2.8], action: 'Seal the sprinkler valve', kind: 'strength', holdSeconds: 1.8, radius: 1.5 },
   { id: 'truck', completionToast: { title:'The water line breaks', text:'The electrical glow fades. Get Jeremy out.' }, chapter: 5, title: 'Stand your ground', description: 'Face Jeremy’s truck. Press E or tap Stop before it reaches you.', location: 'school', point: [-4.5, 1.7], checkpoint: [-3.7, 2.8], action: 'Hold back the truck', kind: 'strength', holdSeconds: 2.3, radius: 1.65 },
-  { id: 'free-jeremy', chapter: 5, title: 'Everybody gets to go home', description: 'The truck hit a water line. Pull open the door and help Jeremy out.', location: 'school', point: [-4.5, 1.7], checkpoint: [-3.7, 2.8], action: 'Free Jeremy', kind: 'rescue', holdSeconds: 1.6, dialogue: 'jeremy-saved', radius: 1.65 },
+  { id: 'free-jeremy', chapter: 5, title: 'Everybody gets to go home', description: 'The truck hit a water line and Jeremy is trapped at the wheel. Tear the door off and pull him out.', location: 'school', point: [-4.5, 1.7], checkpoint: [-3.7, 2.8], action: 'Tear the door off', kind: 'rescue', dialogue: 'jeremy-saved', radius: 1.65 },
   { id: 'home', chapter: 6, title: 'The light in the window', description: 'The school is safe. Head home and find your family by the barn.', location: 'farm', point: [0, 1.7], action: 'Talk with your family', kind: 'talk', actor: 'jonathan', dialogue: 'home' },
   { id: 'loft', chapter: 7, title: 'Every legend starts somewhere', description: 'Take one last look at the stars from the barn loft.', location: 'farm', point: [-2, 0.5], checkpoint: [0, 2.8], action: 'Look toward tomorrow', kind: 'inspect', dialogue: 'loft' },
 ];

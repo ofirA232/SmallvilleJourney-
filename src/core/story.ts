@@ -26,6 +26,7 @@ export function validateEpisode(episode: EpisodeDefinition, locationIds: string[
       if(!['crate','ship','car','truck','spray'].includes(id)||typeof prop.visible!=='boolean')throw new Error(`Unknown or invalid prop: ${id}`);
       if(prop.position)position(prop.position);
       for(const number of [prop.lift,prop.tilt])if(number!==undefined&&!Number.isFinite(number))throw new Error(`Invalid prop transform: ${id}`);
+      if((prop.opened!==undefined&&typeof prop.opened!=='boolean')||(prop.occupied!==undefined&&typeof prop.occupied!=='boolean'))throw new Error(`Invalid prop state: ${id}`);
     }
     value.kryptonite?.forEach(position);
     if(value.player?.carrying!==undefined&&value.player.carrying!==null&&!actors.includes(value.player.carrying))throw new Error('Unknown carried actor');
@@ -60,6 +61,8 @@ export function validateEpisode(episode: EpisodeDefinition, locationIds: string[
   }
 }
 
+/** Pilot objectives added after release, in the order they were added. */
+const PILOT_INSERTIONS=['bridge-moment','fence'];
 export class Story {
   index = 0;
   discoveries = new Set<LocationId>();
@@ -118,15 +121,17 @@ export class Story {
       if (!raw) return;
       const save = JSON.parse(raw) as Partial<SaveGame>;
       if (save.version !== 1 || save.episodeId !== this.episode.id || !Array.isArray(save.completedQuestIds) || !Array.isArray(save.discoveries)) throw new Error('Invalid save');
-      // The bridge scene was inserted into the pilot after its first release.
-      // Accept only the exact previous quest order, retaining the current rescue
-      // or later checkpoint. Never reinterpret a malformed/out-of-order save.
-      const inserted=this.episode.quests.findIndex(quest=>quest.id==='bridge-moment');
-      if(this.episode.id==='s01e01'&&inserted>=0&&!save.completedQuestIds.includes('bridge-moment')&&save.currentQuestId!=='bridge-moment'){
-        const previous=this.episode.quests.filter(quest=>quest.id!=='bridge-moment');
-        const count=save.completedQuestIds.length;
+      // Objectives inserted into the pilot after its first release, oldest first. A save from
+      // before an insertion has the exact quest order without it (and without anything added
+      // later); it keeps its checkpoint and counts the new objective as done once it is behind
+      // that checkpoint. Never reinterpret a malformed/out-of-order save.
+      if(this.episode.id==='s01e01')for(const [step,added] of PILOT_INSERTIONS.entries()){
+        const later=PILOT_INSERTIONS.slice(step+1).filter(id=>!save.completedQuestIds!.includes(id)&&save.currentQuestId!==id);
+        const order=this.episode.quests.filter(quest=>!later.includes(quest.id)),inserted=order.findIndex(quest=>quest.id===added);
+        if(inserted<0||save.completedQuestIds.includes(added)||save.currentQuestId===added)continue;
+        const previous=order.filter(quest=>quest.id!==added),count=save.completedQuestIds.length;
         if(count>=inserted&&count<=previous.length&&save.completedQuestIds.every((id,i)=>previous[i]?.id===id)
-          &&save.currentQuestId===(previous[count]?.id??null)&&save.episodeCompleted===(count===previous.length))save.completedQuestIds.splice(inserted,0,'bridge-moment');
+          &&save.currentQuestId===(previous[count]?.id??null)&&save.episodeCompleted===(count===previous.length))save.completedQuestIds.splice(inserted,0,added);
       }
       const index = save.completedQuestIds.length;
       if (index > this.episode.quests.length || save.completedQuestIds.some((id, position) => this.episode.quests[position]?.id !== id)) throw new Error('Invalid order');

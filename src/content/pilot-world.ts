@@ -12,8 +12,11 @@ export const pilotWorld:EpisodeDefinition['world']={
     kryptonite:[{location:'school',point:[1.8,1.3]}],
   },
   rules:[
-    {from:'friends',changes:{props:{crate:{visible:true,position:{location:'farm',point:[2.8,.7]}}}}},
+    {from:'fence',changes:{props:{crate:{visible:true,position:{location:'farm',point:[2.8,.7]}}}}},
+    // Jonathan works in the yard between the house and the fence while Clark repairs it.
+    {from:'fence',until:'friends',changes:{actors:{jonathan:{location:'farm',point:[.2,1]}}}},
     {from:'car-door',changes:{props:{car:{visible:true}}}},
+    {from:'bring-lex-ashore',changes:{props:{car:{visible:true,opened:true}}}},
     {from:'bridge-moment',changes:{actors:{chloe:{location:'school',point:[4.2,.6]},lana:{location:'school',point:[1.8,1.3]}},kryptonite:[]}},
     {from:'lex-thanks',until:'family-truth',changes:{actors:{lex:{location:'bridge',point:[3,1.5]}}}},
     {from:'bring-lex-ashore',until:'lex-thanks',changes:{player:{carrying:'lex'}}},
@@ -29,7 +32,11 @@ export const pilotWorld:EpisodeDefinition['world']={
     {from:'call-for-help',until:'race',changes:{actors:{lex:{location:'cornfield',point:[.65,1.6],visible:false}}}},
     {from:'race',changes:{props:{truck:{visible:true}}}},
     {from:'race',until:'home',changes:{actors:{jeremy:{location:'school',point:[-3.9,.5]}}}},
-    {from:'free-jeremy',changes:{props:{truck:{visible:true,tilt:.12},spray:{visible:true}}}},
-    {from:'free-jeremy',until:'home',changes:{actors:{jeremy:{location:'school',point:[-4,2.5]}}}},
+    // The confrontation is Clark and Jeremy alone: everyone else at the school is inside at the dance.
+    {from:'race',until:'home',changes:{actors:{pete:{location:'school',point:[-1.5,1.5],visible:false},chloe:{location:'school',point:[4.2,.6],visible:false}}}},
+    // Jeremy is trapped at the wheel until Clark tears the door off; the scene brings him out.
+    {from:'free-jeremy',until:'home',changes:{props:{truck:{visible:true,tilt:.12,occupied:true},spray:{visible:true}}}},
+    {from:'home',changes:{props:{truck:{visible:true,tilt:.12,opened:true},spray:{visible:true}}}},
+    {from:'free-jeremy',until:'home',changes:{actors:{jeremy:{location:'school',point:[-4,2.5],visible:false}}}},
   ],
 };

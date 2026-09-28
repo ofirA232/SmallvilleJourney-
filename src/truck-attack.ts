@@ -1,6 +1,7 @@
 import type {Character} from './world/character';
 import * as THREE from 'three';
 import {at,basis,surfaceRadius,type CharacterController} from './core/sphere';
+import {PICKUP_BLUE} from './world/pickup';
 
 /** Explicit reaction, with active-time updates supplied by the game loop. */
 export class TruckAttack {
@@ -12,9 +13,9 @@ export class TruckAttack {
   private hiddenCab:THREE.Object3D[]=[];
   private jeremyVisible:boolean;
   private cabGeometry=new THREE.BoxGeometry(1,1,1);
-  private cabMaterial=new THREE.MeshStandardMaterial({color:0x8b9c8d});
+  private cabMaterial=new THREE.MeshStandardMaterial({color:PICKUP_BLUE});
   readonly panel=document.createElement('section');
-  constructor(private player:CharacterController,private truck:THREE.Group,private jeremy:Character,private active:()=>boolean,private done:()=>void){
+  constructor(private player:CharacterController,private truck:THREE.Group,private jeremy:Character,private active:()=>boolean,private done:()=>void,private cue:(id:string)=>void=()=>{}){
     this.original={position:truck.position.clone(),quaternion:truck.quaternion.clone(),rotation:truck.children[0]?.rotation.clone(),visible:truck.visible};
     this.jeremyVisible=jeremy.root.visible;jeremy.root.visible=false;
     const body=truck.children[0];
@@ -45,7 +46,7 @@ export class TruckAttack {
   }
   private stop(){
     if(!this.active()||this.phase!=='approach'||this.elapsed>=3.5)return;
-    this.stopAt=this.elapsed;this.elapsed=0;this.phase='stopped';
+    this.stopAt=this.elapsed;this.elapsed=0;this.phase='stopped';this.cue('screech');
     this.panel.querySelector('#truck-message')!.textContent='You caught it. Hold the line.';
     this.panel.querySelector<HTMLButtonElement>('#truck-stop')!.hidden=true;
   }

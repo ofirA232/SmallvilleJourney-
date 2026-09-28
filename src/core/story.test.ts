@@ -21,6 +21,16 @@ describe('episode content and progression',()=>{
       expect(loaded.quest?.id??null).toBe(id);expect(loaded.saveWarning).toBe('');expect(loaded.hasCompleted('bridge-moment')).toBe(true);
     }
   });
+  it('migrates saves from before the fence objective, including saves older than the bridge scene',()=>{
+    for(const [id,drop] of [['feed-crate',['fence']],['friends',['fence']],['car-door',['fence']],['car-door',['fence','bridge-moment']],[null,['fence']]] as const){
+      const storage=new MemoryStorage(),story=create(storage);
+      story.index=id?pilot.quests.findIndex(q=>q.id===id):pilot.quests.length;
+      const old=story.snapshot();old.completedQuestIds=old.completedQuestIds.filter(q=>!(drop as readonly string[]).includes(q));
+      storage.setItem(SAVE_KEY,JSON.stringify(old));const loaded=create(storage);loaded.load();
+      expect(loaded.quest?.id??null).toBe(id);expect(loaded.saveWarning).toBe('');
+      expect(loaded.hasCompleted('fence')).toBe(id!=='feed-crate');
+    }
+  });
   it('has valid references and only explicitly available episodes',()=>{
     expect(()=>validateEpisode(pilot,locations.map(location=>location.id))).not.toThrow();
     expect(pilot.nextEpisode.available).toBe(false);

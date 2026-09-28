@@ -7,7 +7,15 @@ import type { ActorId, LocationId, MemoryDefinition, Point, StoryPropId, WorldPo
 import { Character } from './character';
 import { kentBarn, smallvilleSchool } from './architecture';
 import { countryFence, cow, cropRows, cityBlock } from './countryside';
-import { ball, batchScenery, beam, box, car, cylinder, fence, flower, group, material, plaque, roof, shape, windowBox } from './primitives';
+import { porsche, porscheRoof, PORSCHE_SCALE } from './porsche';
+import { ActorLife } from './actor-life';
+import { placeBus, schoolBus } from './school-bus';
+import { truckCab, truckDoor, type TruckCab } from './truck-cab';
+import { pickup } from './pickup';
+import { loftSet, type Loft } from './loft';
+import { porchSet, type Porch } from './porch';
+import { FENCE_GAP, FENCE_SITES, fenceSection, poseFenceSection, type FenceSection } from './fence-repair';
+import { ball, batchScenery, beam, box, clipping, cylinder, fence, flower, group, material, plaque, roof, shape, windowBox } from './primitives';
 
 export class World {
   root = new THREE.Group();
@@ -19,6 +27,22 @@ export class World {
   landmarkAnchors = new Map<LocationId, THREE.Vector3>();
   dynamic: { crate?: THREE.Group; ship?: THREE.Group; car?: THREE.Group; truck?: THREE.Group; rotor?: THREE.Group; fountain?: THREE.Group; spray?: THREE.Group } = {};
   marker = new THREE.Group();
+  porsche!: ReturnType<typeof porsche>;
+  fenceSections: FenceSection[] = [];
+  life!: ActorLife;
+  truckCab!: TruckCab;
+  /** The sprinkler valve's red wheel in the school service lane; the valve challenge turns it. */
+  valveWheel = new THREE.Group();
+  /** Clark's loft interior, shown only in the finale; it hangs far above the barn. */
+  loft!: Loft;
+  /** Lana's front porch, seen for one shot of the finale; it hangs far above the cemetery. */
+  porch!: Porch;
+  /** The truck's driver door after Clark tears it off: `pose` lies in the service lane. */
+  tornDoor!: { anchor: THREE.Group; pose: THREE.Group; rest: { position: THREE.Vector3; quaternion: THREE.Quaternion } };
+  /** The school bus Clark misses, driving the farm-to-school road during the race. */
+  bus = new THREE.Group();
+  /** The Porsche roof after Clark tears it off: `pose` rests upside down on the riverbank. */
+  tornRoof!: { anchor: THREE.Group; pose: THREE.Group; rest: { position: THREE.Vector3; quaternion: THREE.Quaternion; scale: THREE.Vector3 } };
   scarecrowBindings?:THREE.Group;
   markerDiamond: THREE.Mesh;
   markerRing: THREE.Mesh;
@@ -62,6 +86,12 @@ export class World {
     this.buildFarm(); this.buildSchool(); this.buildBridge(); this.buildMansion(); this.buildCemetery(); this.buildCornfield(); this.buildMetropolis();
     this.buildCountryside(); this.addVegetation(); this.addClouds();
     batchScenery(this.scenery);
+    this.life = new ActorLife(this.colliders);
+    schoolBus(this.bus);this.bus.visible=false;this.root.add(this.bus);
+    this.loft=loftSet(this.root);const above=at('farm',[-2,-1.9]),{east:loftEast,north:loftNorth}=basis(above);
+    this.loft.root.position.copy(above).multiplyScalar(60);this.loft.root.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(loftEast,above,loftNorth.negate()));
+    this.porch=porchSet(this.root);const porchAbove=at('cemetery',[0,0]),{east:porchEast,north:porchNorth}=basis(porchAbove);
+    this.porch.root.position.copy(porchAbove).multiplyScalar(60);this.porch.root.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(porchEast,porchAbove,porchNorth.negate()));
     for(const id of ['crate','ship','car','truck','spray'] as StoryPropId[]){const prop=this.dynamic[id]!;this.propDefaults.set(id,{position:prop.position.clone(),quaternion:prop.quaternion.clone(),tilt:prop.children[0]?.rotation.z??0});}
     for (const id of ['jonathan', 'martha', 'pete', 'chloe', 'lana', 'lex', 'whitney', 'jeremy'] as ActorId[]) {
       const actor = new Character(id, id === 'jonathan' ? 1.04 : ['lana','chloe','martha'].includes(id) ? .90 : .95); this.characters.set(id, actor); this.root.add(actor.root);
@@ -104,7 +134,8 @@ export class World {
   groundFence(id: LocationId, start: Point, end: Point, white=false) {
     countryFence(this.scenery,id,start,end,n=>!isWater(n)
       && !this.roadPoints.some(p=>distance(n,p)<.55)
-      && !this.protectedPoints.some(p=>distance(n,at(p.location,p.point))<.65),white);
+      && !this.protectedPoints.some(p=>distance(n,at(p.location,p.point))<.65)
+      && !FENCE_SITES.some(site=>site.location===id&&distance(n,at(site.location,site.point))<FENCE_GAP),white);
   }
   patch(id: LocationId, point: Point, width: number, depth: number, color: string, lift=.025) {
     const geom = new THREE.BufferGeometry(); const vertices: number[] = [];
@@ -183,6 +214,7 @@ export class World {
     for(let i=0;i<8;i++){ const blade=box(this.dynamic.rotor,'#c6c9ad',0,.39,0,.14,.63,.032); const carrier=group(this.dynamic.rotor); carrier.add(blade); carrier.rotation.z=i*Math.PI/4; }
     cylinder(this.dynamic.rotor,'#9b8c6a',0,0,0,.09,.12).rotation.x=Math.PI/2;
     this.groundFence('farm',[-4.6,3.2],[-1.4,3.2],true); this.groundFence('farm',[1.7,3.2],[4.6,3.2],true); this.groundFence('farm',[4.6,3.2],[4.6,.6],true);
+    for(const site of FENCE_SITES)this.fenceSections.push(fenceSection(this.anchor(site.location,site.point,0,true),site));
     const tractor=this.anchor('farm',[3.9,-4]);
     box(tractor,'#567a56',0,.46,0,.63,.42,1.12); box(tractor,'#75935c',0,.57,-.34,.55,.37,.43); box(tractor,'#a3b69d',0,1.05,.18,.83,.055,.77);
     for(const x of [-.35,.35])for(const z of [-.4,.4]){const wheel=cylinder(tractor,'#465043',x,z>0?.32:.22,z,z>0?.33:.22,.18);wheel.rotation.z=Math.PI/2;}
@@ -212,9 +244,18 @@ export class World {
     for(let i=0;i<7;i++){const paper=box(wall,i%3?'#e3d5af':'#c7b9a0',-.6+(i%3)*.59,.53+Math.floor(i/3)*.32,.09,.39,.25,.01);paper.rotation.z=(i%2?.05:-.05);for(let j=0;j<2;j++)box(wall,'#9b9276',paper.position.x,paper.position.y+j*.055,.102,.23,.014,.01);}
     box(wall,'#344e46',0,1.61,.05,2.02,.24,.19);
     plaque(wall,'WALL OF WEIRD',0,1.61,.16,1.94,.2);
+    // The evidence, readable up close: the yearbook page and the meteor clipping.
+    clipping(wall,'CLASS OF 1993',['Freshman: Jeremy Creek','Homecoming scarecrow'],-.6,.85,.116,.42,.3,true);
+    clipping(wall,'METEORS HIT SMALLVILLE',['Oct. 1989, Riley Field','Boy found near impact'],.58,.85,.116,.42,.3,true,'#e2dcc8');
     const table=this.anchor('school',[4.9,.3]);box(table,'#9e825b',0,.56,0,.68,.06,.42);for(const x of [-.25,.25])box(table,'#6c7052',x,.27,0,.035,.54,.28);box(table,'#e4d7b9',0,.6,0,.34,.014,.25);
-    const valve=this.anchor('school',[-3.9,-1]);box(valve,'#697c70',0,.37,0,.29,.72,.28);const wheel=new THREE.Mesh(new THREE.TorusGeometry(.16,.026,6,14),material('#b36445'));wheel.position.set(0,.62,.18);valve.add(wheel);
-    this.dynamic.truck=this.anchor('school',[-4.5,1.7],0,true);car(this.dynamic.truck,'#8b9c8d',true).rotation.y=Math.PI;
+    clipping(table,'SMALLVILLE MEDICAL',['Patient: Creek, J.','Coma: 12 years','Missing after storm'],0,.609,0,.34,.25,false,'#eef0e6').rotation.x=-Math.PI/2;
+    // The sprinkler valve; its wheel turns during the valve challenge.
+    const valve=this.anchor('school',[-3.9,-1],0,true);box(valve,'#697c70',0,.37,0,.29,.72,.28);
+    this.valveWheel.position.set(0,.62,.18);valve.add(this.valveWheel);this.valveWheel.add(new THREE.Mesh(new THREE.TorusGeometry(.16,.026,6,14),material('#b36445')));
+    for(let i=0;i<3;i++){const spoke=box(this.valveWheel,'#b36445',0,0,0,.3,.025,.02);spoke.rotation.z=i*Math.PI/3;}cylinder(this.valveWheel,'#8a4a33',0,0,0,.035,.04).rotation.x=Math.PI/2;
+    this.dynamic.truck=this.anchor('school',[-4.5,1.7],0,true);const truckModel=pickup(this.dynamic.truck);truckModel.rotation.y=Math.PI;this.truckCab=truckCab(truckModel);
+    const doorAnchor=this.anchor('school',[-3.05,2.5],0,true),doorPose=group(doorAnchor,0,.035,0,true);truckDoor(doorPose);doorPose.rotation.set(0,.7,Math.PI/2);doorAnchor.visible=false;
+    this.tornDoor={anchor:doorAnchor,pose:doorPose,rest:{position:doorPose.position.clone(),quaternion:doorPose.quaternion.clone()}};
     this.dynamic.spray=this.anchor('school',[-4.5,1.3],0,true);
     for(let i=0;i<9;i++)ball(this.dynamic.spray,'#a0d7d0',(this.random()-.5)*.7,.3+this.random()*.9,(this.random()-.5)*.6,.038,.09,.038);
     this.dynamic.spray.visible=false;
@@ -238,7 +279,10 @@ export class World {
     }
     for(const x of [-1.8,1.8]){box(bridge,'#858f7d',x,-.4,0,.48,1.1,1.1);box(bridge,'#b0ae98',x,.025,0,.69,.16,1.3);}
     for(const x of [-2.73,2.73]){const sign=group(bridge,x,.76,.82);box(sign,'#b6ac86',0,0,0,.19,.42,.035);for(const y of [-.13,0,.13]){const stripe=box(sign,'#4e5347',0,y,.023,.18,.055,.018);stripe.rotation.z=-.4;}}
-    this.dynamic.car=this.anchor('bridge',[0,-1.7],-.25,true);car(this.dynamic.car,'#a9b8b2').rotation.set(.13,.25,.18);
+    this.dynamic.car=this.anchor('bridge',[0,-1.7],-.25,true);this.porsche=porsche(this.dynamic.car);this.porsche.root.rotation.set(.13,.25,.18);
+    const tornAnchor=this.anchor('bridge',[-1.9,-2.4],0,true),tornPose=group(tornAnchor,0,.26,0,true);porscheRoof(tornPose);
+    tornPose.rotation.set(.12,.9,Math.PI-.25);tornPose.scale.setScalar(PORSCHE_SCALE);tornAnchor.visible=false;
+    this.tornRoof={anchor:tornAnchor,pose:tornPose,rest:{position:tornPose.position.clone(),quaternion:tornPose.quaternion.clone(),scale:tornPose.scale.clone()}};
     const bank=this.anchor('bridge',[3,1.5]);box(bank,'#b7aa83',0,.04,0,1.05,.08,.8);
     const reeds=this.anchor('bridge',[2,-2.8]);for(let i=0;i<12;i++){const x=(this.random()-.5)*1.4,z=(this.random()-.5)*.9;beam(reeds,'#789971',[x,0,z],[x+.05,.45+this.random()*.25,z],.016);}
     for(let i=0;i<8;i++){const stone=this.anchor('bridge',[(i%2?1:-1)*(1.3+this.random()*.3),-4+i*.9]);shape(stone,'rock','#93a492',0,.08,0,.16,.12,.24);}
@@ -396,6 +440,7 @@ export class World {
     const actor=this.characters.get(id)!;actor.root.visible=visible;
     const normal=at(location,point);const {east,north}=basis(normal);
     actor.root.position.copy(normal).multiplyScalar(surfaceRadius(normal)+.03);actor.root.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(east,normal,north.negate()));
+    this.life.home(actor,normal);
   }
   sync(story: Story) {
     if(this.scarecrowBindings)this.scarecrowBindings.visible=story.restrained;
@@ -416,9 +461,23 @@ export class World {
       }
       if(prop.children[0])prop.children[0].rotation.z=initial.tilt+(placement?.tilt??0);
     }
+    // The new fence posts stand loose until Clark drives them in (always in, in episodes without that objective).
+    const fence=story.episode.quests.findIndex(quest=>quest.id==='fence'),driven=fence<0||story.index>fence;
+    this.fenceSections.forEach((_,index)=>this.setFenceSection(index,driven?1:0));
+    // Jeremy is trapped in the open cab until Clark tears the door off; then it lies in the lane.
+    const truck=state.props.truck,trapped=!!truck?.occupied&&!truck.opened,freed=!!truck?.opened,cab=this.truckCab;
+    cab.closed.forEach(part=>{part.visible=!trapped&&!freed;});cab.frame.visible=trapped||freed;cab.door.visible=cab.driver.visible=trapped;cab.door.rotation.set(0,0,0);
+    this.tornDoor.anchor.visible=!!truck?.visible&&freed;this.tornDoor.pose.position.copy(this.tornDoor.rest.position);this.tornDoor.pose.quaternion.copy(this.tornDoor.rest.quaternion);
+    const car=state.props.car,opened=!!car?.opened;
+    this.porsche.roof.visible=this.porsche.driver.visible=!opened;this.porsche.roof.rotation.set(0,0,0);this.porsche.driver.position.set(-.18,0,.2);
+    const torn=this.tornRoof;torn.anchor.visible=!!car?.visible&&opened;torn.pose.position.copy(torn.rest.position);torn.pose.quaternion.copy(torn.rest.quaternion);torn.pose.scale.copy(torn.rest.scale);
     this.marker.visible=!!story.quest;
     if(story.quest){this.markerNormal=at(story.quest.location,story.quest.point);this.marker.position.copy(this.markerNormal).multiplyScalar(surfaceRadius(this.markerNormal)+.06);this.marker.quaternion.setFromUnitVectors(UP,this.markerNormal);}
   }
+  /** Shows the bus `t` of the way from the farm gate to the school, or hides it. */
+  setBus(t:number|null){this.bus.visible=t!==null;if(t!==null)placeBus(this.bus,t);}
+  /** 0 is a loose post, 1 is driven in with its rails. */
+  setFenceSection(index:number,driven:number){const section=this.fenceSections[index];poseFenceSection(section,driven);section.marker.visible=false;(section.dust.material as THREE.MeshBasicMaterial).opacity=0;}
   kryptoniteNormals(story: Story) {
     return story.world.kryptonite.map(position=>at(position.location,position.point));
   }
@@ -436,18 +495,21 @@ export class World {
     const preview=this.preview;preview.amount=THREE.MathUtils.damp(preview.amount,amount,9,dt);
     prop.position.copy(preview.position).addScaledVector(preview.position.clone().normalize(),preview.amount*lift);
     if(prop.children[0])prop.children[0].rotation.z=preview.tilt+Math.sin(time*19)*preview.amount*.018;
+    // Straining at the Porsche peels the front of its roof up from the windscreen.
+    if(id==='car')this.porsche.roof.rotation.x=preview.amount*.32+Math.sin(time*23)*preview.amount*.015;
   }
-  endPreview(){if(!this.preview)return;const prop=this.dynamic[this.preview.id]!;prop.position.copy(this.preview.position);if(prop.children[0])prop.children[0].rotation.z=this.preview.tilt;this.preview=null;}
-  facePlayer(normal:THREE.Vector3,dt:number){
+  endPreview(){if(!this.preview)return;if(this.preview.id==='car')this.porsche.roof.rotation.x=0;const prop=this.dynamic[this.preview.id]!;prop.position.copy(this.preview.position);if(prop.children[0])prop.children[0].rotation.z=this.preview.tilt;this.preview=null;}
+  facePlayer(normal:THREE.Vector3,dt:number,except?:ActorId){
     const position=normal.clone().multiplyScalar(PLANET_RADIUS);
     for(const actor of this.characters.values()){
-      if(!actor.root.visible||actor.root.position.distanceTo(position)>4.5)continue;
+      if(actor.id===except||!actor.root.visible||actor.root.position.distanceTo(position)>4.5)continue;
       const up=actor.root.position.clone().normalize(),forward=position.clone().sub(actor.root.position);forward.addScaledVector(up,-forward.dot(up)).normalize();
       if(forward.lengthSq()<.1)continue;
       const right=new THREE.Vector3().crossVectors(up,forward).normalize();const rotation=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right,up,forward));actor.root.quaternion.slerp(rotation,1-Math.exp(-dt*3));
     }
   }
-  update(dt: number, time: number, reduced: boolean, intro: boolean, sceneActor?:ActorId) {
+  /** `excluded` actors are animated by a scene; `player` lets the others notice Clark; `speaker` talks with their hands. */
+  update(dt: number, time: number, reduced: boolean, intro: boolean, excluded:(ActorId|undefined)[]=[], player:THREE.Vector3|null=null, speaker:string|null=null) {
     const animTime=reduced?0:time;
     this.markerDiamond.rotation.y=animTime*.65;this.markerDiamond.position.y=1.9+Math.sin(animTime*2.3)*.07;
     this.markerRing.scale.setScalar(1+Math.sin(animTime*2)*.07);
@@ -459,7 +521,7 @@ export class World {
     });
     for(const puff of this.cloudPuffs)this.cloudMeshes[puff.mesh].setMatrixAt(puff.index,this.puffMatrix.multiplyMatrices(this.clouds[puff.cloud].matrix,puff.local));
     for(const mesh of this.cloudMeshes)mesh.instanceMatrix.needsUpdate=true;
-    for(const actor of this.characters.values())if(actor.root.visible&&actor.id!==sceneActor)actor.update(dt,0,false,false,reduced);
+    for(const actor of this.characters.values())if(actor.root.visible&&!excluded.includes(actor.id)&&!this.life.update(actor,dt,player,actor.id===speaker,reduced,time))actor.update(dt,0,false,false,reduced);
     this.meteorGroup.visible=intro;
     if(intro)this.meteorGroup.children.forEach((meteor,index)=>{const travel=(animTime*.27+index*.113)%1;meteor.position.set(-14+index*2.8,37-travel*30,24-travel*15);meteor.rotation.z=-.35;meteor.scale.setScalar(reduced?0:1);});
     if(this.dynamic.spray?.visible)this.dynamic.spray.children.forEach((drop,index)=>{drop.position.y=.1+((animTime*1.4+index*.1)%1)*1.2;});

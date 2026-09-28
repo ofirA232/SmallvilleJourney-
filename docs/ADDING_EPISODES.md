@@ -119,4 +119,6 @@ Power encounters can also specify a story `prop` and a nonnegative `lift` in wor
 
 Run `npm test`, `npm run build`, and `npm run test:e2e`. Unit tests include an independent episode with different quest IDs, state transitions, and isolated saves. Browser tests also mount a different episode's journal/ending, while the full pilot tests navigate and interact through every objective using normal controls.
 
+Cutscenes are content: a `CutsceneDefinition` lists shots (camera and look-at spots relative to a location, duration, optional end spots, field of view and caption), named cues and shakes. Play one with `Cutscene` from `src/cutscene.ts`; its `update` hook animates props from the scene time and its `cue` hook plays sounds. See `bridgeFall` in `src/content/pilot-cutscenes.ts` and `src/bridge-scene.ts` for a complete example.
+
 New locations or NPC models still need scenery/rig definitions and collision volumes. New powers or encounter types need an implementation in the appropriate core system, then a small content option. Test checkpoint safety and navigation before making them available to players.

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { pilot } from '../src/content/pilot';
-import { solveEncounter } from './encounter-helper';
+import { finishStory, solveEncounter, solveFence, solveValve } from './encounter-helper';
 
 async function ready(page:Page){await page.goto('/?quality=low');await expect(page.locator('#world')).toHaveAttribute('data-ready','true',{timeout:60_000});await expect(page.locator('#loading')).toBeHidden();await expect(page.locator('#fallback')).toBeHidden();}
 async function state(page:Page){return page.locator('#telemetry').evaluate(el=>JSON.parse(el.textContent!));}
@@ -48,6 +48,8 @@ test('complete pilot: every objective, a mid-rescue reload, and the saved ending
   await page.clock.install();
   await start(page);
   for(let index=0;index<pilot.quests.length;index++){
+    // Scenes that follow an objective (the bus, the scarecrow night) finish before the next one.
+    await expect(page.locator('#cutscene')).toHaveCount(0,{timeout:60_000});
     const current=await state(page);expect(current.questIndex).toBe(index);
     if(!current.nearby){
       if(info.project.name==='mobile')await page.locator('#track-button').tap();else await page.locator('#track-button').click();
@@ -55,15 +57,14 @@ test('complete pilot: every objective, a mid-rescue reload, and the saved ending
     }
     await expect(page.locator('#interact-button')).toBeVisible();
     if(info.project.name==='mobile')await page.locator('#interact-button').tap();else{await page.locator('#world').focus();await page.keyboard.press('e');}
-    await page.waitForFunction(i=>{const dialogue=document.querySelector<HTMLElement>('#dialogue')!;return !!document.querySelector('#truck-attack')||!!document.querySelector('#encounter[open]')||!dialogue.hidden||JSON.parse(document.querySelector('#telemetry')!.textContent!).questIndex>i;},index);
+    await page.waitForFunction(i=>{const dialogue=document.querySelector<HTMLElement>('#dialogue')!;return !!document.querySelector('#truck-attack')||!!document.querySelector('#fence-status')||!!document.querySelector('#valve')||!!document.querySelector('#cutscene')||!!document.querySelector('#encounter[open]')||!dialogue.hidden||JSON.parse(document.querySelector('#telemetry')!.textContent!).questIndex>i;},index);
     if(await page.locator('#truck-attack').isVisible()){if(info.project.name==='mobile')await page.locator('#truck-stop').tap();else await page.keyboard.press('e');}
+    if(await page.locator('#fence-status').isVisible())await solveFence(page,info.project.name==='mobile');
+    if(await page.locator('#valve').count())await solveValve(page);
     if(await page.locator('#encounter').isVisible())await solveEncounter(page,info.project.name==='mobile');
-    while(await page.locator('#dialogue').isVisible()){
-      const button=await page.locator('#finish-conversation').isVisible()?page.locator('#finish-conversation'):page.locator('#dialogue-next');
-      if(info.project.name==='mobile')await button.tap();else await button.click();
-    }
+    await finishStory(page,info.project.name==='mobile',index);
     await page.waitForFunction(i=>JSON.parse(document.querySelector('#telemetry')!.textContent!).questIndex>i,index);
-    if([6,17,22].includes(index)){
+    if([7,18,23].includes(index)){
       await expect(page.locator('#toast')).toBeHidden();await page.screenshot({path:info.outputPath(`chapter-${index}.png`),scale:'css',timeout:60_000});
     }
     if(pilot.quests[index].id==='car-door'){await page.reload();await expect(page.locator('#world')).toHaveAttribute('data-ready','true',{timeout:60_000});await expect(page.locator('#begin-button')).toContainText('Continue');await page.locator('#begin-button').click();await expect(page.locator('#objective-title')).toHaveText('Back to the surface');}

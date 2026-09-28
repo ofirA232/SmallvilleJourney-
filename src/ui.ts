@@ -29,6 +29,7 @@ export class UI {
   dialogue: DialogueDefinition | null = null;
   dialogueLines: DialogueLine[] = [];
   lineIndex = 0;
+  held = false;
   optional = false;
   dialogueDone: (() => void) | null = null;
   toastUntil = 0;
@@ -53,7 +54,7 @@ export class UI {
       </header>
       <main id="landing" class="landing">
         <div class="landing-eyebrow"><span></span> AN INTERACTIVE ORIGIN STORY</div>
-        <h1>Every legend<br>starts <em>somewhere.</em></h1>
+        <h1>Every legend <br>starts <em>somewhere.</em></h1>
         <p class="landing-copy">Before the cape. Before the city.<br>A boy, a small town, and a world of possibility.<br> Step into Clark Kent’s story.</p>
         <div class="landing-episode"><span class="episode-number">${pad(episode.number)}</span><div><span class="eyebrow">${seasonLabel} · THE BEGINNING</span><h2>${episode.title}</h2><p>${episode.tagline??episode.description}</p></div></div>
         <button id="begin-button" class="primary-button"><span>Begin your journey</span>${svg('arrow')}</button>
@@ -68,7 +69,7 @@ export class UI {
       <div id="chapter-hud" class="chapter-hud" hidden><span id="chapter-number" class="eyebrow"></span><span id="chapter-name"></span><div class="chapter-dots">${this.episode.chapters.map((_,index)=>`<i data-chapter="${index}"></i>`).join('')}</div></div>
       <div id="location-hud" class="location-hud" hidden><span class="eyebrow" id="location-subtitle"></span><h2 id="location-name"></h2><p id="location-description"></p><span class="location-coordinate">SMALLVILLE, KANSAS <b>✦</b> ${episode.year??2001}</span></div>
       <section id="objective" class="objective" hidden aria-label="Current objective">
-        <div class="objective-heading"><span>${svg('star')} YOUR NEXT STEP</span><span id="objective-count"></span></div>
+        <div class="objective-heading"><span>${svg('star')} YOUR NEXT STEP</span><span id="objective-count"></span><button id="objective-toggle" class="objective-toggle" aria-expanded="true" aria-controls="objective-description" aria-label="Collapse the objective card">−</button></div>
         <h3 id="objective-title"></h3><p id="objective-description"></p>
         <div class="objective-bottom"><button id="track-button">${svg('pin')}<span>Walk to objective</span>${svg('northeast')}</button><span id="save-status" title="Saved on this device">${svg('check')} Saved</span></div>
         <div class="objective-progress"><i id="objective-progress"></i></div>
@@ -87,7 +88,7 @@ export class UI {
       <dialog id="settings" class="panel settings-panel"><button class="close-panel" data-close="settings" aria-label="Close settings">${svg('close')}</button><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2>Take the scenic route.</h2><p class="panel-intro">A few things to help you find your way.</p><div class="settings-row"><label for="sound-setting">Sound & atmosphere</label><input id="sound-setting" type="checkbox" /></div><div class="settings-row"><label for="motion-setting">Reduce motion</label><input id="motion-setting" type="checkbox" /></div><div class="settings-row"><label for="quality-setting">Graphics</label><select id="quality-setting"><option value="auto">Automatic</option><option value="low">Battery saver</option><option value="high">High detail</option></select></div><div class="help-controls"><span>Walk</span><b>WASD / Arrow keys / Joystick</b><span>Super speed</span><b>Hold Shift / SPEED</b><span>Hop</span><b>Space / Jump button</b><span>Interact</span><b>E / Tap the gold prompt</b><span>Look around</span><b>Drag · Scroll or pinch to zoom</b><span>Choose a view</span><b>M / Globe button</b><span>Journal</span><b>J / Book button</b><span>Stop a route</span><b>Escape / Move manually</b></div><p class="panel-note">Tap the ground to walk there. You can swim across the river. Green meteor stones weaken Clark—step away to regain your strength.</p><button id="return-title" class="secondary-button">Return to title</button><button id="restart-button" class="text-button danger">Restart this episode</button></dialog>
       <dialog id="restart-confirm" class="panel"><span class="eyebrow">A FRESH START</span><h2>Begin again?</h2><p class="panel-intro">This will replace your saved journey with a new playthrough of this episode.</p><button id="confirm-restart" class="primary-button"><span>Start a new journey</span>${svg('arrow')}</button><button id="cancel-restart" class="secondary-button">Keep my journey</button></dialog>
       <dialog id="retry" class="panel"><span class="eyebrow">TAKE A BREATH</span><h2>There’s still time to try.</h2><p class="panel-intro">Find the school on your map, then use your speed to reach Jeremy. Your story is safe at the last checkpoint.</p><button id="retry-button" class="primary-button"><span>Try from the field</span>${svg('arrow')}</button></dialog>
-      <dialog id="completion" class="panel completion-panel"><div class="completion-symbol">${svg('star')}</div><span class="eyebrow">${seasonLabel} · ${episodeLabel} COMPLETE</span><h2>${ending.title}<br><em>${ending.emphasis}</em></h2><p class="panel-intro">${ending.summary}</p><div class="completion-stats"><span><b>${episode.chapters.length}</b>chapters lived</span><span><b id="completion-places">6</b>places discovered</span><span><b>1</b>story begun</span></div><button id="keep-exploring" class="primary-button"><span>Stay a little longer</span>${svg('arrow')}</button><button id="replay-button" class="text-button">Play ${episode.title} again</button><div class="next-episode"><span>${pad(next.number)}</span><div><strong>${next.title}</strong><small>THE NEXT CHAPTER</small></div><em>Coming soon</em></div></dialog>
+      <dialog id="completion" class="panel completion-panel"><div class="completion-symbol">${svg('star')}</div><span class="eyebrow">${seasonLabel} · ${episodeLabel} COMPLETE</span><h2>${ending.title}<br><em>${ending.emphasis}</em></h2><p class="panel-intro">${ending.summary}</p><div class="completion-stats"><span><b>${episode.chapters.length}</b>chapters lived</span><span><b id="completion-places">6</b>places discovered</span><span><b>1</b>story begun</span></div><button id="keep-exploring" class="primary-button"><span>Step outside into Smallville</span>${svg('arrow')}</button><button id="replay-button" class="text-button">Play ${episode.title} again</button><div class="next-episode"><span>${pad(next.number)}</span><div><strong>${next.title}</strong><small>THE NEXT CHAPTER</small></div><em>Coming soon</em></div></dialog>
       <div id="loading" class="loading"><div class="loading-planet">${svg('star')}</div><h2>Somewhere in Kansas…</h2><p>Growing a little world.</p></div>
       <div id="fallback" class="fallback" hidden><span>${svg('star')}</span><h1>A little more power.</h1><p>This world needs WebGL 2 and graphics acceleration. Try a current Chrome, Edge, Firefox, or Safari browser.</p><button id="reload-button" class="primary-button">Try again ${svg('arrow')}</button><small id="fallback-detail"></small></div>
       <output id="telemetry" class="sr-only" aria-hidden="true"></output>`;
@@ -100,6 +101,12 @@ export class UI {
     element('dialogue-next').addEventListener('click',()=>this.nextDialogue());
     element('tab-story').addEventListener('click',()=>this.journalTab(false));element('tab-places').addEventListener('click',()=>this.journalTab(true));
     element('track-button').addEventListener('click',()=>this.callbacks.navigate?.());
+    // On phones the objective card folds down to its title, like the map.
+    element('objective-toggle').addEventListener('click',()=>{
+      const collapsed=element('objective').classList.toggle('collapsed');
+      element('objective-toggle').textContent=collapsed?'+':'−';element('objective-toggle').setAttribute('aria-expanded',String(!collapsed));
+      element('objective-toggle').setAttribute('aria-label',collapsed?'Expand the objective card':'Collapse the objective card');
+    });
     element('journal-track').addEventListener('click',()=>{this.close('journal');this.callbacks.navigate?.();});
     element('restart-button').addEventListener('click',()=>this.open('restart-confirm'));
     element('replay-button').addEventListener('click',()=>this.open('restart-confirm'));
@@ -149,7 +156,7 @@ export class UI {
     element('interaction-area').hidden=!visible||!quest;
     if(!quest)return;
     element('interact-label').textContent=quest.action;
-    element('interact-kind').textContent=progress>0?'A LITTLE STRENGTH GOES A LONG WAY':quest.kind==='talk'?'A CONVERSATION WORTH HAVING':quest.kind==='inspect'?'EVERY DETAIL TELLS A STORY':'A MOMENT THAT MATTERS';
+    element('interact-kind').textContent=progress>0?'A LITTLE STRENGTH GOES A LONG WAY':quest.kind==='talk'?'A CONVERSATION WORTH HAVING':quest.kind==='inspect'?'EVERY DETAIL TELLS A STORY':quest.kind==='stealth'?'FASTER THAN ANYONE CAN SEE':'A MOMENT THAT MATTERS';
     element('interact-progress').style.width=`${progress*100}%`;
     element('interact-button').classList.toggle('working',progress>0);
   }
@@ -167,8 +174,12 @@ export class UI {
     element('dialogue-choices').hidden=true;element('dialogue-next').hidden=false;
     element('dialogue-next').innerHTML=`${this.lineIndex===this.dialogueLines.length-1?(this.optional?'Back to conversation':'Continue the story'):'Continue'} ${svg('arrow')}`;
   }
+  /** While a scene shows something the line depends on, the conversation waits for it. */
+  holdDialogue(held:boolean) {
+    this.held=held;(element('dialogue-next') as HTMLButtonElement).disabled=held;
+  }
   nextDialogue() {
-    if(!this.dialogue)return;
+    if(!this.dialogue||this.held)return;
     if(this.lineIndex<this.dialogueLines.length-1){this.lineIndex++;this.renderLine();return;}
     if(this.dialogue.optional?.length){this.renderChoices();return;}
     this.finishDialogue();

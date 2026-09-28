@@ -6,7 +6,7 @@ export type StoryPropId = 'crate' | 'ship' | 'car' | 'truck' | 'spray';
 export type AbilityId = 'super-speed' | 'super-strength' | 'invulnerability';
 export interface WorldPosition { location: LocationId; point: Point }
 export interface ActorPlacement extends WorldPosition { visible?: boolean; necklace?: boolean }
-export interface PropState { visible: boolean; position?: WorldPosition; lift?: number; tilt?: number }
+export interface PropState { visible: boolean; position?: WorldPosition; lift?: number; tilt?: number; /** Torn open (the car's roof, the truck's door) with its occupant out. */ opened?: boolean; /** Someone is trapped inside. */ occupied?: boolean }
 export interface PlayerWorldState { restrained: boolean; carrying: NpcId | null; abilities: AbilityId[] }
 export interface EpisodeWorldState {
   night: boolean;
@@ -59,7 +59,7 @@ export interface QuestDefinition {
   checkpoint?: Point;
   checkpointLocation?: LocationId;
   action: string;
-  kind: 'talk' | 'strength' | 'inspect' | 'rescue' | 'race';
+  kind: 'talk' | 'strength' | 'inspect' | 'rescue' | 'race' | 'stealth';
   actor?: ActorId;
   dialogue?: string;
   holdSeconds?: number;

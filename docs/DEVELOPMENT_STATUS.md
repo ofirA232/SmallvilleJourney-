@@ -2,7 +2,7 @@
 
 ## Playable scope
 
-The pilot is implemented as 25 explicit objectives across eight chapters, from the meteor opening to the barn ending. It includes navigation on the sphere, keyboard and touch controls, superspeed, jumping, swimming, contextual strength, kryptonite weakness, conversations, the Lex rescue, the cornfield sequence, the timed school return, checkpoint retry, local saves, and replay.
+The pilot is implemented as 27 explicit objectives across eight chapters, from the meteor opening to the barn ending. It includes navigation on the sphere, keyboard and touch controls, superspeed, jumping, swimming, contextual strength, kryptonite weakness, conversations, the Lex rescue (tearing the roof off his Porsche), a stealth fence repair, story cutscenes, the cornfield sequence, the timed school return, the last dance, checkpoint retry, local saves, and replay.
 
 Metropolis remains a visible, locked future location. Episode two is a coming-soon card.
 
@@ -120,3 +120,71 @@ The loft finale pays that off. Lana is waiting in the barn in her dress, they da
 Added a north-up equirectangular map of the spherical world with named landmarks, a white player heading arrow and a gold objective marker. The map's Go to objective button uses the existing obstacle-aware navigator. It can be collapsed, has accessible labels and 44px controls, and hides during conversations, story scenes, restraint and nearby interactions. Desktop places it beneath the upper-right toolbar; touch layouts put it above the action controls. Static terrain is drawn once on a small canvas; dynamic markers refresh with the HUD, with no additional WebGL draw calls.
 
 Production build passed. Desktop and mobile browser checks passed for screen bounds, non-overlap with controls/objective, live position updates, collapse/reopen, settings hiding, objective navigation and dialogue hiding. Visual screenshots are in the local `test-results/minimap` directory.
+
+### September 27 - Cutscene system and the Loeb Bridge crash
+
+Added a reusable cutscene system. `src/core/cutscene.ts` is a pure timeline: shots with camera and look-at spots in a location's local frame, optional dolly/pan between them, per-shot field of view and captions, named cues, and decaying camera shakes. `src/cutscene.ts` plays it over the live world with letterbox bars, subtitles above the host badge, a Skip scene button (and Escape), an impact flash, and a hidden HUD. The game loop supplies active time, so menus, blur and hidden tabs pause a scene where it stands. When a scene ends, the follow camera takes over from the last shot's position instead of cutting. Portrait screens widen the vertical field of view (up to 70 degrees) to keep roughly the landscape framing.
+
+The bridge crash is the first scene (`bridgeFall` in `src/content/pilot-cutscenes.ts`, 6.8 seconds): an establishing shot of Clark on the bridge, the car rushing along the deck, the impact with a flash and shake, and a low shot of the splash. Synthesized engine, impact and splash sounds play on the scene's cues. Checkpoint behaviour is unchanged: the save still points to the bridge interaction until the splash, and skipping completes it exactly once.
+
+Validation: 57 unit tests (seven new timeline tests), the production build, and 22 desktop/mobile browser scenarios (bridge, full pilot journey, minimap and controls). The bridge scenario saves one capture per shot.
+
+### September 27 - The Porsche, the fence, the scarecrow night and the last dance
+
+- **Lex's Porsche.** The car is now a light-blue fastback (`src/world/porsche.ts`): round headlights on the wings, a ducktail, a red tail-light bar, glass the player can see through, and a seated Lex at the wheel. Its roof is a separate hinged group. It appears in the bridge crash and in the river.
+- **Tearing the roof off.** In the `car-door` strength encounter the roof peels up as Clark strains. Finishing it plays `roofTear` (4.2 seconds): the roof tears away and lands on the west bank, and Clark lifts Lex out. A new `opened` prop state keeps the wreck roofless and the roof on the bank until `lex-thanks`, including after reloads. The objective completes when the scene ends, so an interrupted scene replays from the encounter.
+- **"Faster than Dad can see"** (`fence`, new objective between the crate and the run to school). Four fence sections are down. Jonathan works in the yard with his back turned, gives a short tell, then turns to watch the fence; a vision cone shows on the ground. While his back is turned, E repairs a section instantly at super speed. While he watches, a repair takes 3.2 seconds by hand, and super speed in front of him is a strike. The third strike starts the fence over. Jonathan's rhythm is fixed, not random. His reaction dialogue ends with the bus leaving, which leads into the existing race. Saves from before the objective, including saves older than the bridge scene, migrate through a general list of inserted objectives.
+- **Scarecrow night** (`scarecrowNight`, 7.6 seconds) plays after Whitney's conversation: a wide shot over Riley Field as night falls, a low angle on Clark tied to the post with the necklace glowing, and Jeremy walking out of the corn.
+- **The last dance.** The loft dialogue now pauses when Lana offers the dance. `DanceScene` stages the couple in the yard with a slow half-orbit camera; Lana leads six steps (arrows/WASD or on-screen buttons) with a shrinking window. A missed step is only a stumble. The daydream ends with a soft flash, and `loft-after` finishes the episode.
+- Story scenes share one `StoryScene` interface in the game loop; a scene may pose Clark or animate one actor itself.
+
+Validation: 58 unit tests (including the fence save migration) and the production build pass. The full browser suite (84 desktop/mobile tests, with new specs for the roof tear, the fence mission, the scarecrow scene and the dance) passed 80 of 84 in one run on a heavily loaded machine (4-7 fps); the other four passed on rerun after the fence and dance test helpers were made independent of frame rate. The dance helper steps Playwright's clock, so each lead is answered inside its window on any machine.
+
+### September 27 (later) - Posts, the bus, a live world, Jeremy's truck and the loft
+
+- **Fence posts.** The fence objective now has Clark driving four new posts into the ground: one push at super speed (with a dust ring) while Jonathan's back is turned, or seven hammer blows by hand while he watches. The rails go on once a post is home. Strikes and the reset are unchanged.
+- **The bus.** A yellow school bus (`src/world/school-bus.ts`) pulls away from the farm gate in `BusScene` after Jonathan's reaction. During the run to school it drives the farm-to-school road, reaching the school as the clock runs out; the race clock waits for the scene.
+- **Lex at full size.** Clark carries Lex at the world actor's scale, face up across his arms. In the roof tear Clark takes hold of the full-size Lex the moment he lifts him out.
+- **Conversations stay live.** The 3D scene keeps rendering during conversations (it still sleeps behind menus and in the background), and dragging or pinching turns and zooms the camera while people talk.
+- **A living town.** `src/world/actor-life.ts` gives every character a routine around the spot the story gives them: short strolls (never into water or buildings), glances over the shoulder, turning to Clark when he comes within 4.5 units, and gestures while they speak.
+- **Jeremy's truck.** For `free-jeremy` the truck shows an open cab with Jeremy trapped at the wheel. `TruckDoorScene` has Clark tear the door off (it lands in the lane) and pull Jeremy out at full size before their conversation. A new `occupied` prop state marks someone trapped inside; `opened` keeps the door off afterwards.
+- **The loft.** The finale plays in Clark's loft (`src/world/loft.ts`), modelled on the reference photo: A-frame roof with rafters and collar ties, string lights, a hay-door window with a moon, bookshelf, red couch, armchair, dartboard, trunk, rug, globe, hay and the telescope. The set floats far above the barn so nothing on the planet intrudes. `LoftScene` runs the conversation with a turnable camera, brings Lana up the stairs, plays the last dance as a short film with no choices, and ends the daydream; the closing panel follows, and "Keep exploring" returns Clark to the farm.
+
+### September 27 (evening) - Title music, prom, the Wall of Weird, the valve, the pickup and the stars
+
+- **Title music without the wait.** Sound is on by default (a saved choice is still respected). The opening track preloads and starts on the title; the supplied file opens with 2.7 s of silence and ends with 4.6 s, so playback starts at 2.6 s and loops back there before the silent tail. Browsers that refuse autoplay start it on the first touch, click or key press.
+- **The Kent family track carries the whole morning**: the chores, the fence posts, the bus and the run to school. A cue can now name the conversation that ends it (`untilDialogue`), so it fades on Pete's first line as the school track opens.
+- **Conversations stay light.** While people talk the 3D scene renders at up to 30 fps, or a few frames a second on a device that is already struggling, and at full rate while the player turns the camera.
+- **Objective card on phones.** A fold control collapses the card to its title, like the map.
+- **The prom question** (`PromScene`) closes the cemetery conversation: Clark asks, Lana is going with Whitney, he says to forget he asked, she promises the last dance and kisses his cheek. The lines play as subtitles with close-ups.
+- **The Wall of Weird** (`WallScene`) plays before the deduction: the yearbook page, the meteor clipping and the hospital report, now printed and readable, tell Jeremy's story before the player connects the pieces.
+- **Jeremy's pickup** is a blue truck with a chrome grille and bumpers (`src/world/pickup.ts`), and stopping it screeches the tyres.
+- **The sprinkler valve** (`ValveChallenge`) replaces the strength meter: three full clockwise turns of the wheel in 12 seconds, by dragging around it or pressing the arrows in turn; the red wheel at the valve turns with it, and running out of time offers another try.
+- **The last look.** After the loft conversation the camera pushes to the hay door, out through it, and tilts up to a dome of stars for the closing lines, before the ending panel. The panel's button now reads "Step outside into Smallville", and closing the panel any way returns Clark to the farm.
+
+### September 27 (night) - The title screen, the bridge route, the porch and the closing song
+
+- **A title screen that never overlaps.** The globe is framed into the free part of the screen, measured from the page: beside the text on wide screens and above it on phones. Globe labels hide wherever they would sit on the text or the bars, short laptop screens keep the bottom bar's layout without its tagline, and phones in landscape get a compact one-line title. On small phones the framed globe sits further off than the usual draw distance, so the camera's far plane now reaches it.
+- **The bus takes Loeb Bridge.** The river has no other crossing, so the route runs from the farm gate to the bridge, across the deck, and on to the school gate.
+- **The prom question is framed wider**, so Clark's and Lana's heads both stay in shot.
+- **The Wall of Weird film is Clark's alone.** Chloe stands just behind the spot where Clark reads the wall, so she steps out of the film and is back for the deduction.
+- **The service yard is empty.** From the race to the return home, Pete, Chloe and Whitney are inside at the dance; only Clark and Jeremy are at the school.
+- **The loft camera breathes.** Every loft shot creeps in slowly (a small dolly and a gentle zoom that restart at each cut). Lana's arrival cuts to a view over Clark's shoulder to the top of the stairs.
+- **"Goodnight, Lana."** After a beat on Clark, the film cuts across town to Lana at her aunt's front door (`src/world/porch.ts`: clapboard siding, a white door with a lamp-lit curtained pane, a porch lamp and a floral chair, after the reference still). She turns and looks into the camera as if she heard him, then it cuts straight back to Clark. The moment plays as a short film (`goodnight`) with letterbox bars and the line as a subtitle; the conversation waits behind it (Skip or Escape end it early), and when it ends the card moves on to the closing line by itself.
+- **The series title over the stars.** The last look now holds on the stars after the closing line, and the Smallville logo (`public/images/smallville-logo.png`) fades up there before the ending panel opens; it stays behind the panel until Clark steps outside.
+- **Every song eases in and out.** One envelope (`src/core/music-envelope.ts`) rides the title music and every story track: a 2 s fade in whenever a song starts, loops or resumes, and a 2.6 s fade out at every handover, when the title closes, and in the last seconds before a file ends or loops back. Story tracks now loop by hand to their offset so each pass fades out and in again.
+- **The last dance is an embrace.** Clark and Lana dance close together; his hands rest at her waist and her arms go around his neck (`src/world/embrace.ts` lays the arm pose over the rigs after their animation each frame).
+- **The closing song plays out.** `everything.mp3` now opens at 2:20, with the family by the barn. The final track no longer fades when the episode completes: it plays to its last note behind the ending panel (without looping), and fades only when the player steps outside into Smallville.
+
+### September 27 (late night) - Score for the middle of the pilot
+
+Five supplied tracks fill most of the stretch between the rescue and the return home that had no music.
+
+- **`family-secrets.mp3`** opens on Lex's first line on the riverbank and carries Jonathan's answers and the craft in the storm cellar. It fades when `A quiet kind of understanding` becomes the objective. `unstoppable.mp3` now plays on under the questions on the bank, and fades as Lex's conversation opens, instead of fading as soon as he is ashore.
+- **`autumn-afterlight.mp3`** opens on Lana's first line at the cemetery, carries the prom question and the kiss, and fades when `More than a name` becomes the objective.
+- **`luminous-tension.mp3`** opens on Chloe's first line at the Wall of Weird, carries the three clippings, the film of Jeremy's story and the deduction, and fades when `An old tradition` becomes the objective.
+- **`cornfield-night.mp3`** opens at 0:12 as night falls on Riley Field. It carries Jeremy at the scarecrow post and Lex's car pulling up, and fades as Clark calls out to Lex.
+- **`forward-momentum.mp3`** takes over on that call, as Lex cuts Clark down. It carries the run back to school, the stand-off outside the gym, the valve and the truck, and fades when `Everybody gets to go home` becomes the objective. It is the first cue with its own `level` (0.10 instead of the shared 0.15, about 3.5 dB down), because it drives harder than the rest of the score.
+- A cue without a `dialogue` now opens as soon as its `from` objective begins. The scarecrow scene plays after Whitney's conversation has already completed her objective, so no conversation opens that stretch.
+
+Browser tests in `e2e/story-music.spec.ts` cover each new handover and fade.
